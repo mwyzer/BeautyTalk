@@ -1,0 +1,48 @@
+{
+  "name": "beautyai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BeautyAI — AI-Powered Beauty Commerce & SEO Intelligence Platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "concurrently": "^9.1.0",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.19.1",
+    "vitest": "^3.0.5"
+  },
+  "scripts": {
+    "dev": "concurrently -n api,web,admin -c blue,green,magenta \"npm:dev:api\" \"npm:dev:web\" \"npm:dev:admin\"",
+    "dev:api": "npm run dev -w @beautyai/api",
+    "dev:web": "npm run dev -w @beautyai/web",
+    "dev:admin": "npm run dev -w @beautyai/admin",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run --exclude \"**/*.integration.test.ts\"",
+    "test:integration": "vitest run --no-file-parallelism apps/api/src/modules/auth/auth.integration.test.ts apps/api/src/test/tenant-isolation.integration.test.ts",
+    "db:migrate": "tsx packages/db/src/migrate.ts",
+    "db:seed": "tsx apps/api/src/scripts/seed.ts",
+    "db:reset": "npm run db:migrate && npm run db:seed"
+  },
+  "allowScripts": {
+    "esbuild@0.27.7": true,
+    "esbuild@0.28.2": true,
+    "esbuild@0.25.12": true,
+    "sharp@0.34.5": true
+  }
+}

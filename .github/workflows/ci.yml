@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint + Typecheck + Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: beautyai
+          POSTGRES_PASSWORD: beautyai_ci
+          POSTGRES_DB: beautyai_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U beautyai -d beautyai_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://beautyai:beautyai_ci@localhost:5432/beautyai_test
+      DATABASE_URL_TEST: postgres://beautyai:beautyai_ci@localhost:5432/beautyai_test
+      JWT_ACCESS_SECRET: ci_access_secret_at_least_16_chars
+      JWT_REFRESH_SECRET: ci_refresh_secret_at_least_16_chars
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Integration tests (Postgres-backed)
+        run: npm run test:integration
+
+      - name: Verify migrations are clean from scratch
+        run: npm run db:migrate
+
+  docker:
+    name: Build API image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build BeautyAI API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: false
+          tags: beautyai/api:ci

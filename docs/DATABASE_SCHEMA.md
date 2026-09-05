@@ -670,7 +670,7 @@ Status enum: `pending, paid, fulfilled, shipped, delivered, cancelled, refunded`
 | `tenant_id` | uuid FK | |
 | `feature` | text (content_credits, crawl_frequency, stores, api_access) |
 | `used` | int DEFAULT 0 | |
-| `limit` | int | from plan |
+| `quota_limit` | int | from plan |
 | `period_start` | timestamptz | |
 | `updated_at` | timestamptz | |
 
@@ -712,7 +712,7 @@ Status enum: `pending, paid, fulfilled, shipped, delivered, cancelled, refunded`
 | `action` | text (e.g., product.update) |
 | `resource_type`/`resource_id` | text/uuid |
 | `before`/`after` | jsonb NULL |
-| `ip` | inet NULL |
+| `ip` | text NULL |
 | `created_at` | timestamptz |
 
 ---

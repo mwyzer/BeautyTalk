@@ -1,0 +1,65 @@
+name: beautyai
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: beautyai-postgres
+    environment:
+      POSTGRES_USER: beautyai
+      POSTGRES_PASSWORD: beautyai_dev
+      POSTGRES_DB: beautyai
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U beautyai -d beautyai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: beautyai-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: beautyai-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: beautyai_minio
+      MINIO_ROOT_PASSWORD: beautyai_minio_secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: beautyai-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:
