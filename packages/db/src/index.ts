@@ -1,4 +1,4 @@
-export { createPool, type Db, type DbConfig, type DbPool, type QueryResult } from "./pool.js";
+export { createPool, type Db, type DbConfig, type DbPool, type QueryResult, type Queryable } from "./pool.js";
 export {
   ensureMigrationsTable,
   listPendingMigrations,

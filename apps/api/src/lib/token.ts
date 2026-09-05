@@ -44,7 +44,7 @@ export function signRefreshToken(
 
 export function verifyAccessToken(secret: string, token: string): AuthContext {
   const payload = jwt.verify(token, secret) as TokenClaims;
-  if (payload.type !== "access" || !payload.sub || !payload.tenant_id) {
+  if (payload.type !== "access" || !payload.sub || !payload.tenant_id || !payload.role) {
     throw new Error("Invalid access token payload");
   }
   return { userId: payload.sub, tenantId: payload.tenant_id, role: payload.role };
