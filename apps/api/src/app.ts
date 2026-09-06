@@ -14,15 +14,20 @@ import { createCartsRouter } from "./modules/carts/routes.js";
 import { createCheckoutRouter, createCheckoutService, createStripeWebhookRouter } from "./modules/checkout/index.js";
 import { createAdminOrdersRouter } from "./modules/orders/index.js";
 import { createCustomerAuthRouter, createCustomerAccountRouter, createCustomerAdminRouter, createCustomerAuthService } from "./modules/customers/index.js";
+import { createContentService, createAdminContentRouter, createContentProvider } from "./modules/content/index.js";
+import type { ContentProvider } from "./content/types.js";
+import type { ContentJobClient } from "./jobs/contentQueue.js";
 import { findActiveMemberships } from "./repositories/memberships.repo.js";
 import { findTenantById } from "./repositories/tenants.repo.js";
 
 export interface AppDeps {
   db: DbPool;
   config: AppConfig;
+  contentProvider?: ContentProvider | null;
+  jobs?: ContentJobClient | null;
 }
 
-export function createApp({ db, config }: AppDeps): express.Express {
+export function createApp({ db, config, contentProvider, jobs }: AppDeps): express.Express {
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
@@ -52,6 +57,7 @@ export function createApp({ db, config }: AppDeps): express.Express {
   const auth = createAuthService(db, config);
   const customerAuth = createCustomerAuthService(db, config);
   const merchantAuthenticate = authenticate(config);
+  const content = createContentService({ db, provider: contentProvider === undefined ? createContentProvider(config) : contentProvider });
 
   const api = express.Router();
   api.use("/auth", createAuthRouter(auth));
@@ -91,6 +97,7 @@ export function createApp({ db, config }: AppDeps): express.Express {
   api.use("/admin/users", merchantAuthenticate, requireRoles("owner", "editor"), createAdminUsersRouter(db));
   api.use("/admin/orders", merchantAuthenticate, requireRoles("owner", "editor"), createAdminOrdersRouter(db, payments));
   api.use("/admin/customers", merchantAuthenticate, requireRoles("owner", "editor"), createCustomerAdminRouter(db));
+  api.use("/admin/content", merchantAuthenticate, requireRoles("owner", "editor"), createAdminContentRouter({ db, service: content, jobs }));
 
   // Customer self-service (customer JWT). Mounted after merchant /me so GET /me stays merchant-only.
   api.use("/me", createCustomerAccountRouter(db, config));

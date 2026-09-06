@@ -37,6 +37,10 @@ export class ApiError extends Error {
     return new ApiError(422, "Validation Error", detail, errors);
   }
 
+  static rateLimited(detail = "Too many requests"): ApiError {
+    return new ApiError(429, "Too Many Requests", detail);
+  }
+
   static serviceUnavailable(detail = "Service temporarily unavailable"): ApiError {
     return new ApiError(503, "Service Unavailable", detail);
   }

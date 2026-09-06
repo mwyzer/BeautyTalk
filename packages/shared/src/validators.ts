@@ -204,3 +204,32 @@ export type AddressUpdateInput = z.infer<typeof addressUpdateSchema>;
 export type OrderUpdateInput = z.infer<typeof orderUpdateSchema>;
 export type FulfillOrderInput = z.infer<typeof fulfillOrderSchema>;
 export type RefundOrderInput = z.infer<typeof refundOrderSchema>;
+
+// ===== Content (Phase 2: AI Content Engine) =====
+
+export const brandToneUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(60).optional().nullable(),
+  voice: z.string().max(500).optional().nullable(),
+  forbiddenWords: z.array(z.string().trim().min(1)).max(200).optional(),
+  preferredTerms: z.record(z.string()).optional(),
+  samplePhrases: z.array(z.string().trim().min(1)).max(50).optional(),
+  language: z.string().trim().min(2).max(10).optional(),
+});
+
+export const contentGenerateSchema = z.object({
+  type: z.enum(["product_description", "meta", "blog"]),
+  targetIds: z.array(z.string().uuid("targetId must be a valid id")).min(1, "at least one target is required").max(50, "max 50 targets per request"),
+  regenerate: z.boolean().optional().default(false),
+});
+
+export const draftUpdateSchema = z.object({
+  title: z.string().trim().max(200).optional().nullable(),
+  body: z.string().max(100_000).optional().nullable(),
+  metaTitle: z.string().max(60, "metaTitle must be 60 characters or fewer").optional().nullable(),
+  metaDescription: z.string().max(160, "metaDescription must be 160 characters or fewer").optional().nullable(),
+  changeSummary: z.string().max(500).optional().nullable(),
+});
+
+export type BrandToneUpdateInput = z.infer<typeof brandToneUpdateSchema>;
+export type ContentGenerateInput = z.infer<typeof contentGenerateSchema>;
+export type DraftUpdateInput = z.infer<typeof draftUpdateSchema>;

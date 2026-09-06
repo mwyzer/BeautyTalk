@@ -41,6 +41,31 @@
 
 Common status codes: 200, 201, 204, 400, 401, 403, 404, 409, 422, 429, 500, 503.
 
+### 1.2 Implementation Status (Phase 0–2)
+
+The spec below is the target API for all phases. Sections marked **Implemented** are live behind the v1 router. Deferred phases (SEO Auditor, Analytics, Recommendations, Billing) remain backward-compatible designs.
+
+**Implemented endpoint surface (Phase 0–2):**
+
+| Area | Endpoints |
+|---|---|
+| Auth (merchant) | `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /me`, `GET /tenant`, `GET /admin/users` |
+| Public catalog | `GET /products`, `GET /products/{handle}`, `GET /collections`, `GET /collections/{handle}`, `GET /collections/{handle}/products` |
+| Admin catalog | `GET/POST /admin/products`, `GET/PATCH/DELETE /admin/products/{id}`, `POST /admin/products/{id}/publish`, `GET/POST /admin/collections`, `PATCH/DELETE /admin/collections/{id}`, `POST|DELETE /admin/collections/{id}/products/{productId}` |
+| Cart | `POST /carts`, `GET /carts/{id}`, `POST/PATCH/DELETE /carts/{id}/items(/{itemId})` |
+| Checkout | `POST /checkout/sessions`, `GET /checkout/confirm/{sessionId}`, `POST /webhooks/stripe` |
+| Orders | `GET /admin/orders`, `GET/PATCH /admin/orders/{id}`, `POST /admin/orders/{id}/fulfill`, `POST /admin/orders/{id}/cancel`, `POST /admin/orders/{id}/refund` |
+| Customers | `POST /customers/register`, `POST /customers/login`, `GET /me/account`, `GET /me/orders`, `GET|POST /me/addresses`, `PATCH|DELETE /me/addresses/{id}`, `GET /admin/customers`, `GET|PATCH /admin/customers/{id}` |
+| **AI Content** | `POST /admin/content/generate`, `GET /admin/content/drafts`, `GET/PATCH /admin/content/drafts/{id}`, `POST /admin/content/drafts/{id}/approve`/`reject`/`publish`, `GET /admin/content/drafts/{id}/versions`, `POST /admin/content/drafts/{id}/versions/{v}/restore`, `GET /admin/content/credits`, `GET|PUT /admin/content/brand-tone` |
+
+**Storefront tenant resolution:** public and customer endpoints resolve the store from the `X-Tenant-Slug` request header (or `?slug=`). Missing/unknown slug → `404 Store not found`.
+
+**JWT types:** merchant access tokens (`type: merchant`, role `owner|editor|viewer`) vs. customer tokens (`type: customer`). They are not interchangeable — a customer token on `/me` returns 401 and an owner token on `/me/account` returns 401.
+
+**Checkout without Stripe (graceful degradation):** when `STRIPE_SECRET_KEY`/`CHECKOUT_*_URL` are unset, `POST /checkout/sessions` returns `503` with an explanatory message instead of crashing. The webhook route 400s on missing/invalid signatures, and `STRIPE_WEBHOOK_SECRET` must be configured to process events. Refunding an order with a recorded `stripe_payment_intent` calls Stripe; otherwise the refund is recorded locally.
+
+**Content without OpenAI/Redis (graceful degradation):** without `OPENAI_API_KEY`, `POST /admin/content/generate` returns `503`. Without `REDIS_URL`, generation runs synchronously; with it, the request is queued (BullMQ `content-generate`) and returns `202`.
+
 ---
 
 ## 2. Authentication & Authorization
@@ -133,19 +158,21 @@ Prices in **minor units** (cents). SKU unique per tenant.
 
 ## 4. Cart & Checkout
 
+Implemented rows beneath. `POST /carts/{id}/discount` and `GET /checkout/sessions/{id}` are deferred.
+
 | Method | Path | Description |
 |---|---|---|
-| POST | `/carts` | Create cart → `{ cart_id }` |
-| GET | `/carts/{id}` | Get cart |
-| POST | `/carts/{id}/items` | Add item (variant_id, qty) |
-| PATCH | `/carts/{id}/items/{item_id}` | Update qty |
-| DELETE | `/carts/{id}/items/{item_id}` | Remove item |
-| POST | `/carts/{id}/discount` | Apply discount code |
-| DELETE | `/carts/{id}/discount` | Remove discount |
-| POST | `/checkout/sessions` | Create Stripe Checkout session from cart |
-| GET | `/checkout/sessions/{id}` | Checkout status (open/complete/expired) |
-| GET | `/checkout/confirm/{session_id}` | Public confirmation page payload |
-| POST | `/webhooks/stripe` | Stripe webhook (checkout.completed etc.) |
+| POST | `/carts` | Create cart → `{ cart_id }` — **implemented** |
+| GET | `/carts/{id}` | Get cart — **implemented** |
+| POST | `/carts/{id}/items` | Add item (variant_id, qty) — **implemented** |
+| PATCH | `/carts/{id}/items/{item_id}` | Update qty — **implemented** |
+| DELETE | `/carts/{id}/items/{item_id}` | Remove item — **implemented** |
+| POST | `/carts/{id}/discount` | Apply discount code (deferred) |
+| DELETE | `/carts/{id}/discount` | Remove discount (deferred) |
+| POST | `/checkout/sessions` | Create Stripe Checkout session from cart — **implemented** |
+| GET | `/checkout/sessions/{id}` | Checkout status (open/complete/expired) — deferred |
+| GET | `/checkout/confirm/{session_id}` | Public confirmation page payload — **implemented** |
+| POST | `/webhooks/stripe` | Stripe webhook (checkout.session.completed) — **implemented** |
 
 Flow: cart → checkout session → redirect to Stripe → webhook → order created → email.
 
@@ -168,63 +195,92 @@ Order statuses: `pending, paid, fulfilled, shipped, delivered, cancelled, refund
 
 ## 6. Customers
 
+Implemented endpoints:
+
 | Method | Path | Description |
 |---|---|---|
-| POST | `/auth/register` | Customer self-registration (orders history) |
+| POST | `/customers/register` | Customer self-registration (tenant via `X-Tenant-Slug`) → `{ access_token, customer }` |
+| POST | `/customers/login` | Customer login → `{ access_token, customer }` |
+| GET | `/me/account` | Customer's own profile (customer JWT) |
 | GET | `/me/orders` | Customer's own order history |
 | GET | `/me/addresses` | Customer addresses |
 | POST | `/me/addresses` | Add address |
 | PATCH | `/me/addresses/{id}` | Update/Set primary |
 | DELETE | `/me/addresses/{id}` | Delete |
-| GET | `/admin/customers` | List customers (search/filter) |
-| GET | `/admin/customers/{id}` | Customer detail + order history |
+| GET | `/admin/customers` | List customers (search `?q=`) |
+| GET | `/admin/customers/{id}` | Customer detail + addresses |
 | PATCH | `/admin/customers/{id}` | Update customer, add notes/tags |
 
 ---
 
 ## 7. AI Content Engine
 
+All endpoints require a merchant JWT with `owner` or `editor` role and are scoped to the caller's tenant.
+
 | Method | Path | Description |
 |---|---|---|
-| POST | `/content/generate` | Queue generation → `{ job_id }`; poll `GET /content/generate/{job_id}` |
-| GET | `/content/generate/{job_id}` | Job status → `{ status, draft_id? }` |
-| POST | `/content/generate/bulk` | Generate for multiple product ids (config: fields, tone) |
-| GET | `/content/drafts` | List drafts (filter status) |
-| GET | `/content/drafts/{id}` | Draft detail incl. versions |
-| PATCH | `/content/drafts/{id}` | Edit draft |
-| POST | `/content/drafts/{id}/publish` | Publish to product |
-| DELETE | `/content/drafts/{id}` | Discard draft |
-| POST | `/content/drafts/{id}/versions/{version}/restore` | Restore version |
-| GET | `/content/credits` | Credit balance + usage history |
-| GET | `/content/brand-tone` | Get brand tone config |
-| PUT | `/content/brand-tone` | Set brand tone (voice, forbidden words, language style) |
+| POST | `/admin/content/generate` | Generate drafts for 1–50 product ids (sync friend + async job) |
+| GET | `/admin/content/drafts` | List drafts (filters: `status`, `type`, `page`, `limit`) |
+| GET | `/admin/content/drafts/{id}` | Draft detail |
+| PATCH | `/admin/content/drafts/{id}` | Edit draft (snapshots prior content into version history) |
+| POST | `/admin/content/drafts/{id}/approve` | Approve draft (`draft` → `approved`) |
+| POST | `/admin/content/drafts/{id}/reject` | Reject draft (`draft`/`approved` → `rejected`) |
+| POST | `/admin/content/drafts/{id}/publish` | Publish approved draft to product (writes `description`/`body_html` + SEO meta) |
+| GET | `/admin/content/drafts/{id}/versions` | Version history |
+| POST | `/admin/content/drafts/{id}/versions/{version}/restore` | Restore a prior version |
+| GET | `/admin/content/credits` | Credit balance + usage history + feature quota |
+| GET | `/admin/content/brand-tone` | Get brand tone config |
+| PUT | `/admin/content/brand-tone` | Set brand tone (voice, forbidden words, language, preferred terms) |
 
 ### 7.1 Generate Request
 
 ```json
 {
-  "product_id": "prod_01",
-  "fields": ["description", "meta_title", "meta_description"],
-  "language": "en",
-  "tone": "luxury-warm"
+  "type": "product_description",
+  "targetIds": ["prod_01", "prod_02"],
+  "regenerate": false
 }
 ```
 
-### 7.2 Generate Response (job)
+- `type`: `product_description` or `meta`. (`blog` returns `400` — no blog entity yet.)
+- `targetIds`: 1–50 valid product ids in the tenant's catalog.
+- `regenerate`: when `false`, existing active drafts for a target are reused (cached, no credit charged).
+
+### 7.2 Generate Response
+
+With `REDIS_URL` set, generation is queued (BullMQ) and returns `202`:
+
+```json
+{ "data": { "queued": true, "jobId": "job_01" } }
+```
+
+Without Redis (or when immediate results are preferred), it runs synchronously and returns `200`:
 
 ```json
 {
-  "job_id": "job_01",
-  "status": "completed",
-  "draft_id": "draft_01",
-  "fields": {
-    "description": "A silky dermatologist-grade formula…",
-    "meta_title": "Vitamin C Brightening Serum | Glow Co. (58 chars)",
-    "meta_description": "…"
-  },
-  "validation": { "char_lengths": { "meta_title": 58 }, "ok": true }
+  "data": {
+    "drafts": [
+      {
+        "id": "draft_01",
+        "type": "product_description",
+        "status": "draft",
+        "body": "A lightweight hydrating serum…",
+        "metaTitle": null,
+        "metaDescription": null,
+        "llmModel": "gpt-4o",
+        "promptSnapshot": { "productId": "prod_01", "type": "product_description", "regenerated": false }
+      }
+    ],
+    "cached": 0
+  }
 }
 ```
+
+Behavior:
+- Each generated draft records a `content.generated` ledger entry (`-1` credit). Bulk generation reserves credits up front and refunds unused amounts on partial failure.
+- Over the remaining quota returns `429`.
+- `503` when no provider is configured (`OPENAI_API_KEY` unset).
+- Drafts are **never auto-published**; publishing requires an explicit approve → publish flow.
 
 ---
 
@@ -360,23 +416,17 @@ Plans enum: `starter, growth, scale`.
 ### 13.1 Generate content with curl
 
 ```bash
-curl -X POST https://api.beautyai.app/api/v1/content/generate \
+curl -X POST http://localhost:4000/api/v1/admin/content/generate \
   -H "Authorization: Bearer <JWT>" \
   -H "Content-Type: application/json" \
   -d '{
-    "product_id": "prod_01HXabc",
-    "fields": ["description", "meta_title", "meta_description"],
-    "tone": "warm-approachable"
+    "type": "product_description",
+    "targetIds": ["prod_01"],
+    "regenerate": false
   }'
 
-# → { "job_id": "job_01", "status": "queued" }
-```
-
-Poll:
-
-```bash
-curl https://api.beautyai.app/api/v1/content/generate/job_01 \
-  -H "Authorization: Bearer <JWT>"
+# → 200 sync: { "data": { "drafts": [...], "cached": 0 } }
+# → 202 async (REDIS_URL set): { "data": { "queued": true, "jobId": "job_01" } }
 ```
 
 ### 13.2 Start a crawl

@@ -262,3 +262,73 @@ export interface CheckoutResult {
   cartId: string;
   orderNumber: number | null;
 }
+
+// ===== Content (Phase 2: AI Content Engine) =====
+
+export const CONTENT_TYPES = ["product_description", "meta", "blog"] as const;
+export type ContentType = (typeof CONTENT_TYPES)[number];
+
+export const DRAFT_STATUSES = ["draft", "approved", "published", "rejected"] as const;
+export type DraftStatus = (typeof DRAFT_STATUSES)[number];
+
+export interface BrandTone {
+  id: string;
+  tenantId: string;
+  name: string | null;
+  voice: string | null;
+  forbiddenWords: string[];
+  preferredTerms: Record<string, string>;
+  samplePhrases: string[];
+  language: string;
+  updatedAt: string;
+}
+
+export interface ContentDraft {
+  id: string;
+  tenantId: string;
+  type: ContentType;
+  targetType: string | null;
+  targetId: string | null;
+  title: string | null;
+  body: string | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  status: DraftStatus;
+  llmModel: string | null;
+  promptSnapshot: Record<string, unknown> | null;
+  createdBy: string | null;
+  approvedAt: string | null;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContentVersion {
+  id: string;
+  draftId: string;
+  version: number;
+  body: string | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  changeSummary: string | null;
+  createdBy: string | null;
+  createdAt: string;
+}
+
+export interface CreditLedgerEntry {
+  id: string;
+  tenantId: string;
+  userId: string | null;
+  operation: string;
+  amount: number;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export interface FeatureQuota {
+  tenantId: string;
+  feature: string;
+  used: number;
+  quotaLimit: number;
+  periodStart: string;
+}

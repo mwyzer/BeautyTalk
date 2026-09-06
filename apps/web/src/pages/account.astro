@@ -1,0 +1,8 @@
+---
+import Storefront from "../layouts/Storefront.astro";
+import AccountView from "../components/AccountView.tsx";
+---
+
+<Storefront title="Account | BeautyTalk" description="Sign in to your BeautyTalk customer account.">
+  <AccountView client:load />
+</Storefront>

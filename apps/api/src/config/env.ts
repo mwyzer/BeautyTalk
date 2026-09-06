@@ -16,6 +16,10 @@ const envSchema = z
     CHECKOUT_SUCCESS_URL: z.string().url().optional(),
     CHECKOUT_CANCEL_URL: z.string().url().optional(),
     STOREFRONT_URL: z.string().url().optional(),
+    OPENAI_API_KEY: z.string().optional(),
+    OPENAI_BASE_URL: z.string().url().optional(),
+    OPENAI_MODEL_FAST: z.string().default("gpt-4o-mini"),
+    OPENAI_MODEL_FULL: z.string().default("gpt-4o"),
   });
 
 export type AppConfig = z.infer<typeof envSchema>;

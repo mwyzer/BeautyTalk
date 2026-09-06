@@ -1,9 +1,54 @@
-export function App() {
+import { useEffect, useState, type ReactElement } from "react";
+import { AdminLayout, LoginForm, useAuthState } from "./components/Layout";
+import { setToken } from "./lib/api";
+import { ProductsView } from "./views/ProductsView";
+import { OrdersView } from "./views/OrdersView";
+import { CustomersView } from "./views/CustomersView";
+import { ContentView } from "./views/ContentView";
+
+type View = "products" | "orders" | "customers" | "content";
+
+function readView(): View {
+  const h = window.location.hash.replace(/^#\/?/, "");
+  if (h === "orders" || h === "customers" || h === "content") return h;
+  return "products";
+}
+
+export function App(): ReactElement {
+  const { authed } = useAuthState();
+  const [view, setView] = useState<View>(readView);
+  const [, force] = useState(0);
+
+  useEffect(() => {
+    const onHash = (): void => setView(readView());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  useEffect(() => {
+    if (authed) force((n) => n + 1);
+  }, [authed]);
+
+  if (!authed) {
+    return <LoginForm onLogin={readView} />;
+  }
+
+  const navigate = (v: string): void => {
+    window.location.hash = `/${v}`;
+    setView(v as View);
+  };
+
+  const logout = (): void => {
+    setToken(null);
+    window.location.hash = "";
+  };
+
   return (
-    <main style={{ fontFamily: "system-ui, sans-serif", maxWidth: 640, margin: "0 auto", padding: "2rem" }}>
-      <h1>BeautyAI — Admin Dashboard</h1>
-      <p>Admin skeleton (Phase 0). Product, order, AI content, SEO audit, and analytics modules land in later phases.</p>
-      <p>API base: <code>http://localhost:4000/api/v1</code></p>
-    </main>
+    <AdminLayout view={view} onNavigate={navigate} onLogout={logout}>
+      {view === "products" && <ProductsView />}
+      {view === "orders" && <OrdersView />}
+      {view === "customers" && <CustomersView />}
+      {view === "content" && <ContentView />}
+    </AdminLayout>
   );
 }

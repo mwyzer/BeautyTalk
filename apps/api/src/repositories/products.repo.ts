@@ -332,7 +332,9 @@ export async function archiveProduct(db: Db, tenantId: string, id: string): Prom
 
 export async function setProductStatus(db: Db, tenantId: string, id: string, status: "active" | "draft"): Promise<void> {
   await db.query(
-    `UPDATE products SET status = $3, published_at = CASE WHEN $3 = 'active' THEN coalesce(published_at, now()) ELSE NULL END, updated_at = now()
+    `UPDATE products SET status = $3::product_status,
+       published_at = CASE WHEN $3::text = 'active' THEN coalesce(published_at, now()) ELSE NULL END,
+       updated_at = now()
      WHERE tenant_id = $1 AND id = $2`,
     [tenantId, id, status],
   );

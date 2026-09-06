@@ -585,3 +585,43 @@ img {
     width: 120px;
   }
 }
+/* Account */
+.container-narrow { max-width: 520px; }
+.acct-card {
+  background: var(--surface);
+  border: 1px solid var(--border, rgba(0,0,0,0.08));
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 10px 30px rgba(60, 40, 20, 0.06);
+}
+.acct-card h2 { margin: 4px 0 6px; font-family: var(--font-display); }
+.acct-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+.acct-head h2 { margin: 4px 0 0; font-family: var(--font-display); }
+.acct-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; align-items: start; }
+.acct-panel { background: var(--surface); border: 1px solid rgba(0,0,0,0.08); border-radius: 16px; padding: 22px; }
+.acct-panel h3 { margin: 0 0 12px; font-size: 15px; letter-spacing: 0.02em; }
+.muted { color: #6f6a62; }
+.small { font-size: 13px; }
+.stack { display: grid; gap: 12px; margin-top: 18px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field-label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; }
+.field-label input {
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid rgba(0,0,0,0.16);
+  border-radius: 10px;
+  background: #fff;
+}
+.field-label input:focus { outline: none; border-color: var(--accent, #b26a4a); }
+.switch-line { margin-top: 14px; }
+.link-btn { background: none; border: none; padding: 0; color: var(--accent, #b26a4a); font: inherit; font-weight: 600; cursor: pointer; }
+.plain-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.order-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 14px; }
+.order-row:last-child, .addr-row:last-child { border-bottom: none; }
+.order-row .pill { text-transform: capitalize; }
+.addr-row { display: grid; gap: 2px; padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.06); }
+.addr-row .muted, .addr-row .small { margin: 0; }
+@media (max-width: 760px) {
+  .acct-grid { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+}

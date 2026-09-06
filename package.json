@@ -16,6 +16,7 @@
     "concurrently": "^9.1.0",
     "eslint": "^9.17.0",
     "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "prettier": "^3.4.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
@@ -34,7 +35,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run --exclude \"**/*.integration.test.ts\"",
-    "test:integration": "vitest run --no-file-parallelism apps/api/src/modules/auth/auth.integration.test.ts apps/api/src/test/tenant-isolation.integration.test.ts",
+    "test:integration": "vitest run --no-file-parallelism apps/api/src/modules/auth/auth.integration.test.ts apps/api/src/test/tenant-isolation.integration.test.ts apps/api/src/modules/commerce/commerce.integration.test.ts apps/api/src/modules/content/content.integration.test.ts",
     "db:migrate": "tsx packages/db/src/migrate.ts",
     "db:seed": "tsx apps/api/src/scripts/seed.ts",
     "db:reset": "npm run db:migrate && npm run db:seed"
