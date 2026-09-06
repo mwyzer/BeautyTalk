@@ -1,7 +1,19 @@
-# Local dev dependencies for BeautyAI. Optional: only needed when the API
-# runs in "async mode" (REDIS_URL set) or you prefer Postgres in Docker.
-# Usage: docker compose up -d
+# BeautyAI full stack, all running in Docker.
+#
+# Infrastructure (Postgres, Redis) + the app itself (api, admin, web).
+# `docker compose up -d --build` brings everything up.
+#
+# First run: apply the schema and seed data (against the Docker postgres on
+# the published host port):
+#   npm run db:migrate
+#   npm run db:seed
+# Demo login: demo@glow.co / Password123!
+#
+# NOTE: the legacy local infra containers (beautyai-postgres, -redis,
+# -mailpit, -minio) were stopped and replaced by this stack's postgres/redis.
+# Run `docker compose down` and `docker compose up -d --build` to restart.
 services:
+  # ===== Infrastructure =====
   postgres:
     image: postgres:16-alpine
     environment:
@@ -24,6 +36,70 @@ services:
       - "6379:6379"
     volumes:
       - beautyai_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ===== App: backend =====
+  api:
+    build:
+      context: .
+      target: api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgres://beautyai:beautyai_dev@postgres:5432/beautyai
+      DATABASE_URL_TEST: postgres://beautyai:beautyai_dev@postgres:5432/beautyai_test
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: prod_access_secret_change_me_32_bytes_long
+      JWT_REFRESH_SECRET: prod_refresh_secret_change_me_32_bytes_long
+      JWT_ACCESS_TTL: 15m
+      JWT_REFRESH_TTL: 30d
+      STOREFRONT_URL: http://web:4321
+      CHECKOUT_SUCCESS_URL: http://localhost:4321/checkout/confirm/{CHECKOUT_SESSION_ID}
+      CHECKOUT_CANCEL_URL: http://localhost:4321/cart
+    ports:
+      - "4000:4000"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ===== App: admin SPA =====
+  admin:
+    build:
+      context: .
+      target: admin
+      args:
+        VITE_API_URL: http://localhost:4000/api/v1
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+  # ===== App: storefront (Astro SSR) =====
+  web:
+    build:
+      context: .
+      target: web
+      args:
+        PUBLIC_API_URL: http://localhost:4000
+        PUBLIC_STORE_SLUG: glow-co
+        PUBLIC_STOREFRONT_URL: http://localhost:4321
+    environment:
+      API_INTERNAL_URL: http://api:4000
+    ports:
+      - "4321:4321"
+    depends_on:
+      - api
 
 volumes:
   beautyai_pgdata:

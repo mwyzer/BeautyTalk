@@ -1,6 +1,13 @@
 import type { Cart, CollectionDetail, CollectionSummary, Product, ProductImage } from "@beautyai/shared";
 
-export const API_URL = (import.meta.env.PUBLIC_API_URL as string | undefined) ?? "http://localhost:4000";
+// The browser follows the build-time PUBLIC_API_URL (baked in), but during
+// SSR the container must reach the API over the docker network, so allow a
+// runtime override (API_INTERNAL_URL) that only server-side code sees.
+export const API_URL = (
+  import.meta.env.SSR
+    ? (process.env.API_INTERNAL_URL as string | undefined)
+    : (import.meta.env.PUBLIC_API_URL as string | undefined)
+) ?? "http://localhost:4000";
 export const STORE_SLUG = (import.meta.env.PUBLIC_STORE_SLUG as string | undefined) ?? "glow-co";
 export const STOREFRONT_URL = (import.meta.env.PUBLIC_STOREFRONT_URL as string | undefined) ?? "http://localhost:4321";
 
