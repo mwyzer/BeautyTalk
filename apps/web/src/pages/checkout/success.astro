@@ -1,0 +1,79 @@
+---
+import Storefront from "../../layouts/Storefront.astro";
+import { API_URL, STORE_SLUG } from "../../lib/api";
+import { cents } from "../../lib/format";
+
+const sessionId = Astro.url.searchParams.get("session_id") ?? "";
+
+interface ConfirmResult {
+  status: string;
+  order?: {
+    id: string;
+    number: number;
+    status: string;
+    totalAmount: number;
+    currency: string;
+  };
+}
+
+let result: ConfirmResult | null = null;
+let confirmed = false;
+
+if (sessionId) {
+  try {
+    const res = await fetch(`${API_URL}/api/v1/checkout/confirm/${encodeURIComponent(sessionId)}`, {
+      headers: { "X-Tenant-Slug": STORE_SLUG },
+    });
+    if (res.ok) {
+      result = ((await res.json()) as { data: ConfirmResult }).data;
+      confirmed = result?.status === "complete";
+    }
+  } catch {
+    // transient — leave result null so page shows "pending"
+  }
+}
+---
+
+<Storefront
+  title={confirmed ? "Order confirmed" : "Checking your order"}
+  description="BeautyTalk checkout"
+>
+  <section class="section">
+    <div class="container" style={{ maxWidth: 640 }}>
+      <div class="notice" style={{ padding: "36px 32px", textAlign: "center" as const }}>
+        {!sessionId ? (
+          <>
+            <p class="eyebrow">Checkout</p>
+            <h1 style={{ fontSize: 30 }}>No order reference</h1>
+            <p>We couldn’t find a checkout session. If you just paid, your confirmation email is on its way.</p>
+            <a class="btn btn-primary" href="/">Back to the store</a>
+          </>
+        ) : confirmed && result?.order ? (
+          <>
+            <p class="eyebrow">Thank you</p>
+            <h1 style={{ fontSize: 30 }}>Your order is confirmed</h1>
+            <div class="meta-row" style={{ justifyContent: "center" }}>
+              <span>Order #{result.order.number}</span>
+              <span>•</span>
+              <span>{cents(result.order.totalAmount)}</span>
+              <span>•</span>
+              <span>{result.order.status}</span>
+            </div>
+            <p>We’ve saved your order and will email the receipt. Track it any time from your account.</p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+              <a class="btn btn-primary" href="/search">Keep shopping</a>
+              <a class="btn btn-ghost" href="/account/orders">View my orders</a>
+            </div>
+          </>
+        ) : (
+          <>
+            <p class="eyebrow">Checkout</p>
+            <h1 style={{ fontSize: 30 }}>Confirming your order…</h1>
+            <p>If you just completed payment, refresh this page in a moment and we’ll show your confirmation.</p>
+            <a class="btn btn-ghost" href={`/checkout/success?session_id=${encodeURIComponent(sessionId)}`}>Refresh</a>
+          </>
+        )}
+      </div>
+    </div>
+  </section>
+</Storefront>

@@ -126,7 +126,7 @@ export async function listProducts(
     `${sql} ORDER BY p.${orderBy} ${direction} LIMIT ${limit} OFFSET ${(page - 1) * limit}`,
     values,
   );
-  const count = await db.query<{ n: string }>(sql.replace(/^SELECT.*?FROM products p/, "SELECT COUNT(*)::text n FROM products p"), values);
+  const count = await db.query<{ n: string }>(sql.replace(/^SELECT[\s\S]*?FROM products p/, "SELECT COUNT(*)::text n FROM products p"), values);
   return { data: rows, total: Number(count.rows[0]?.n ?? 0) };
 }
 

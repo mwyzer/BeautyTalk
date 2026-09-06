@@ -1,0 +1,19 @@
+---
+import Storefront from "../../layouts/Storefront.astro";
+---
+
+<Storefront title="Checkout cancelled — BeautyTalk" description="Your checkout was cancelled.">
+  <section class="section">
+    <div class="container" style={{ maxWidth: 640 }}>
+      <div class="notice" style={{ padding: "36px 32px", textAlign: "center" as const }}>
+        <p class="eyebrow">Checkout</p>
+        <h1 style={{ fontSize: 30 }}>Checkout cancelled</h1>
+        <p>No worries — your cart is still saved. Come back any time to finish up.</p>
+        <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+          <button type="button" class="btn btn-ghost" data-cart-open>Return to cart</button>
+          <a class="btn btn-primary" href="/search">Keep shopping</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</Storefront>

@@ -1,0 +1,31 @@
+---
+import type { Product } from "@beautyai/shared";
+import { cents } from "../lib/format";
+import { productImage, productUrl } from "../lib/api";
+
+interface Props {
+  product: Product;
+}
+
+const { product } = Astro.props;
+---
+
+<a class="card" href={productUrl(product.handle)} style={{ textDecoration: "none", color: "inherit" }}>
+  <div class="card-media">
+    {productImage(product) ? (
+      <img src={productImage(product)!} alt={product.images[0]?.alt ?? product.title} loading="lazy" />
+    ) : (
+      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontFamily: "var(--font-display)", fontSize: 44, color: "var(--accent)" }}>{product.title[0]}</span>
+      </div>
+    )}
+  </div>
+  <div class="card-body">
+    <div class="card-title">{product.title}</div>
+    {product.vendor && <div class="meta-row">{product.vendor}</div>}
+    <div class="card-price">
+      {cents(product.variants[0]?.priceAmount ?? 0)}
+      {product.variants.length > 1 && <span style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 500 }}> / from</span>}
+    </div>
+  </div>
+</a>

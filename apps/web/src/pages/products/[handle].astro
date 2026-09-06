@@ -1,0 +1,85 @@
+---
+import type { Product } from "@beautyai/shared";
+import Storefront from "../../layouts/Storefront.astro";
+import ProductBuy from "../../components/ProductBuy.tsx";
+import { fetchProductByHandle, productImage, productUrl, storefrontAbsolute } from "../../lib/api";
+
+const { handle } = Astro.params;
+const product: Product | null = await fetchProductByHandle(handle ?? "");
+
+if (!product) {
+  return Astro.redirect("/search");
+}
+const pageUrl = storefrontAbsolute(productUrl(product.handle));
+const seoTitle = product.seo?.metaTitle ?? `${product.title} — BeautyTalk`;
+const seoDescription =
+  product.seo?.metaDescription ?? product.description ?? `${product.title} from BeautyTalk.`;
+const ogImage = productImage(product);
+const price = product.variants[0]?.priceAmount ?? 0;
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: product.title,
+  description: seoDescription,
+  image: ogImage ?? undefined,
+  sku: product.variants[0]?.sku ?? undefined,
+  brand: { "@type": "Brand", name: product.vendor ?? "BeautyTalk" },
+  aggregateRating: undefined,
+  offers: {
+    "@type": "Offer",
+    url: pageUrl,
+    priceCurrency: "USD",
+    price: (price / 100).toFixed(2),
+    availability: product.variants.some((v) => v.inventoryQty > 0)
+      ? "https://schema.org/InStock"
+      : "https://schema.org/OutOfStock",
+  },
+};
+---
+
+<Storefront
+  title={seoTitle}
+  description={seoDescription}
+  canonical={pageUrl}
+  ogTitle={product.seo?.ogTitle ?? undefined}
+  ogDescription={product.seo?.ogDescription ?? undefined}
+  ogImage={ogImage ?? undefined}
+  jsonLd={jsonLd}
+>
+  <div class="container">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a> / <a href="/search">Shop</a> / <span>{product.title}</span>
+    </nav>
+
+    <section class="pdp">
+      <div class="pdp-media">
+        {ogImage ? (
+          <img src={ogImage} alt={product.images[0]?.alt ?? product.title} />
+        ) : (
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontFamily: "var(--font-display)", fontSize: 72, color: "var(--accent)" }}>{product.title[0]}</span>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <p class="eyebrow">{product.vendor ?? "BeautyTalk"}</p>
+        <h1 class="pdp-title">{product.title}</h1>
+        {product.description && <p style={{ color: "var(--ink-soft)", maxWidth: "46ch" }}>{product.description}</p>}
+
+        <ProductBuy client:load variants={product.variants} />
+
+        {product.tags.length > 0 && (
+          <div class="meta-row" style={{ marginTop: 24 }}>
+            {product.tags.map((t) => (
+              <span style={{ background: "var(--bg-soft)", borderRadius: 999, padding: "3px 10px", fontSize: 12 }}>
+                #{t}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  </div>
+</Storefront>

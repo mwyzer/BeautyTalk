@@ -87,8 +87,8 @@ export function createApp({ db, config }: AppDeps): express.Express {
   });
 
   // Merchant admin API (JWT + RBAC).
+  api.use("/admin", merchantAuthenticate, requireRoles("owner", "editor"), createAdminCatalogRouter(db));
   api.use("/admin/users", merchantAuthenticate, requireRoles("owner", "editor"), createAdminUsersRouter(db));
-  api.use("/admin/products", merchantAuthenticate, requireRoles("owner", "editor"), createAdminCatalogRouter(db));
   api.use("/admin/orders", merchantAuthenticate, requireRoles("owner", "editor"), createAdminOrdersRouter(db, payments));
   api.use("/admin/customers", merchantAuthenticate, requireRoles("owner", "editor"), createCustomerAdminRouter(db));
 

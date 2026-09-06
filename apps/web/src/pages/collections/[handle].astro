@@ -1,0 +1,45 @@
+---
+import Storefront from "../../layouts/Storefront.astro";
+import ProductCard from "../../components/ProductCard.astro";
+import { fetchCollectionByHandle, fetchCollectionProducts } from "../../lib/api";
+
+const { handle } = Astro.params;
+const collection = await fetchCollectionByHandle(handle ?? "").catch(() => null);
+
+if (!collection) {
+  return Astro.redirect("/search");
+}
+
+const products = (await fetchCollectionProducts(collection.handle).catch(() => []))
+  .filter((p) => p.status === "active" && p.variants.length > 0);
+---
+
+<Storefront
+  title={`${collection.title} — BeautyTalk`}
+  description={collection.description ?? `Shop ${collection.title} at BeautyTalk.`}
+  ogImage={collection.imageUrl ?? undefined}
+>
+  <section class="section" style={{ paddingTop: 36 }}>
+    <div class="container">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/">Home</a> / <a href="/search">Shop</a> / <span>{collection.title}</span>
+      </nav>
+
+      <div class="section-head" style={{ marginTop: 24 }}>
+        <div>
+          <p class="eyebrow">Collection</p>
+          <h1>{collection.title}</h1>
+          {collection.description && <p style={{ color: "var(--ink-soft)", maxWidth: "56ch" }}>{collection.description}</p>}
+        </div>
+      </div>
+
+      {products.length === 0 ? (
+        <div class="notice">This collection is being restocked — check back soon.</div>
+      ) : (
+        <div class="grid">
+          {products.map((p) => <ProductCard product={p} />)}
+        </div>
+      )}
+    </div>
+  </section>
+</Storefront>

@@ -9,9 +9,13 @@
     "preview": "astro preview",
     "typecheck": "astro check"
   },
-"dependencies": {
+  "dependencies": {
     "@astrojs/node": "^9.0.0",
-    "astro": "^5.1.9"
+    "@astrojs/react": "^6.0.5",
+    "@beautyai/shared": "^0.1.0",
+    "astro": "^5.1.9",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",

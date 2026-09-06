@@ -1,25 +1,76 @@
 ---
-const title = "BeautyAI — Storefront";
+import Storefront from "../layouts/Storefront.astro";
+import { fetchCollections, fetchProducts, productImage } from "../lib/api";
+import ProductCard from "../components/ProductCard.astro";
+
+const [products, collections] = await Promise.all([
+  fetchProducts({ limit: 6 }),
+  fetchCollections(),
+]);
+
+const featured = products.data.filter((p) => p.status === "active" && p.variants.length > 0);
+const featureCollections = collections.filter((c) => c.productCount > 0).slice(0, 3);
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-    <meta name="description" content="BeautyAI storefront placeholder for tenant stores." />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  </head>
-  <body>
-    <header>
-      <nav>
-        <a href="/">BeautyAI Store</a>
-      </nav>
-    </header>
-    <main>
-      <h1>Welcome to your beauty store</h1>
-      <p>This is the Astro storefront skeleton (Phase 0). Product pages, collections, and checkout arrive in Phase 1.</p>
-    </main>
-  </body>
-</html>
+<Storefront
+  title="BeautyTalk — Clean Skincare, Honest Formulas"
+  description="Efficacious skincare crafted for modern routines. Cleansers, serums, moisturizers and more."
+  ogImage={featured[0] ? productImage(featured[0]) ?? undefined : undefined}
+>
+  <section class="hero">
+    <div class="container">
+      <p class="eyebrow">The BeautyTalk Edit</p>
+      <h1>Skincare that talks straight.</h1>
+      <p>
+        No hype, no fluff — just efficacious formulas with visible results, chosen by dermatologists and loved by
+        routines everywhere.
+      </p>
+      <a class="btn btn-primary" href="/search">Shop all products</a>
+    </div>
+  </section>
+
+  {featureCollections.length > 0 && (
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <h2>Shop by category</h2>
+          <a href="/search" class="icon-btn">View all →</a>
+        </div>
+        <div class="grid">
+          {featureCollections.map((c) => (
+            <a class="card" href={`/collections/${c.handle}`} style={{ textDecoration: "none", color: "inherit" }}>
+              <div class="card-media" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {c.imageUrl ? (
+                  <img src={c.imageUrl} alt={c.title} loading="lazy" />
+                ) : (
+                  <span style={{ fontFamily: "var(--font-display)", fontSize: 40, color: "var(--accent)" }}>{c.title[0]}</span>
+                )}
+              </div>
+              <div class="card-body">
+                <div class="card-title">{c.title}</div>
+                <div class="meta-row">{c.productCount} product{c.productCount === 1 ? "" : "s"}</div>
+                {c.description && <p style={{ margin: 0, fontSize: 14, color: "var(--ink-soft)" }}>{c.description}</p>}
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <h2>Bestsellers</h2>
+        <a href="/search" class="icon-btn">Browse everything →</a>
+      </div>
+      {featured.length === 0 ? (
+        <div class="notice">The catalog is being stocked — check back soon.</div>
+      ) : (
+        <div class="grid">
+          {featured.slice(0, 8).map((p) => <ProductCard product={p} />)}
+        </div>
+      )}
+    </div>
+  </section>
+</Storefront>

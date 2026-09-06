@@ -1,0 +1,40 @@
+---
+import Storefront from "../layouts/Storefront.astro";
+import ProductCard from "../components/ProductCard.astro";
+import { fetchProducts } from "../lib/api";
+
+const q = (Astro.url.searchParams.get("q") ?? "").trim();
+
+let products: Awaited<ReturnType<typeof fetchProducts>>["data"] = [];
+if (q) {
+  const res = await fetchProducts({ q, limit: 48 }).catch(() => ({ data: [], total: 0 }));
+  products = res.data.filter((p) => p.status === "active" && p.variants.length > 0);
+}
+const title = q ? `Search: ${q}` : "Shop all products";
+---
+
+<Storefront title={`${title} — BeautyTalk`} description="Browse the full BeautyTalk skincare collection.">
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Shop</p>
+          <h1>{q ? `Results for “${q}”` : "All products"}</h1>
+        </div>
+      </div>
+
+      {!q ? (
+        <div class="notice">
+          Search the catalog by name, concern, ingredient or category. For example: <em>serum</em>, <em>vitamin c</em> or{" "}
+          <em>night cream</em>.
+        </div>
+      ) : products.length === 0 ? (
+        <div class="notice">Nothing matched “{q}”. Try a broader term like “serum” or “moisturizer”.</div>
+      ) : (
+        <div class="grid">
+          {products.map((p) => <ProductCard product={p} />)}
+        </div>
+      )}
+    </div>
+  </section>
+</Storefront>
