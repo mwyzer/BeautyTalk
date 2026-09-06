@@ -93,7 +93,7 @@ erDiagram
     orders ||--o{ shipments : "has"
     orders ||--o{ order_events : "records"
     tenants ||--o{ content_drafts : "owns"
-    tenants ||--|  brand_tones : "configures"
+    tenants ||--|| brand_tones : "configures"
     tenants ||--o{ audits : "runs"
     audits ||--o{ crawl_urls : "visits"
     audits ||--o{ audit_issues : "yields"
