@@ -24,6 +24,11 @@ const envSchema = z
     OPENAI_BASE_URL: z.string().url().optional(),
     OPENAI_MODEL_FAST: z.string().default("gpt-4o-mini"),
     OPENAI_MODEL_FULL: z.string().default("gpt-4o"),
+    GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
+    GOOGLE_OAUTH_CLIENT_SECRET: z.string().optional(),
+    GOOGLE_REDIRECT_URI: z.string().url().optional(),
+    GOOGLE_ADS_DEVELOPER_TOKEN: z.string().optional(),
+    ANALYTICS_TOKEN_KEY: z.string().min(16, "ANALYTICS_TOKEN_KEY must be at least 16 chars").optional(),
   });
 
 export type AppConfig = z.infer<typeof envSchema>;

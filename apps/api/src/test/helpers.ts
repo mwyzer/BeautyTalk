@@ -3,6 +3,8 @@ import { createApp } from "../app.js";
 import { createConfig, type AppConfig } from "../config/env.js";
 import type { ContentProvider } from "../content/types.js";
 import type { AuditService } from "../modules/audit/index.js";
+import type { AnalyticsService } from "../modules/analytics/index.js";
+import type { AnalyticsFetcher } from "../analytics/types.js";
 
 export function testConfig(overrides: Record<string, string> = {}): AppConfig {
   const url = testDatabaseUrl();
@@ -49,7 +51,9 @@ export function makeTestAppWith(
   overrides: Record<string, string> = {},
   provider?: ContentProvider | null,
   auditService?: AuditService | null,
+  analyticsFetcher?: AnalyticsFetcher | null,
+  analyticsService?: AnalyticsService | null,
 ): { app: ReturnType<typeof createApp>; config: AppConfig } {
   const config = testConfig(overrides);
-  return { app: createApp({ db, config, contentProvider: provider, auditService }), config };
+  return { app: createApp({ db, config, contentProvider: provider, auditService, analyticsFetcher, analyticsService }), config };
 }

@@ -437,3 +437,135 @@ export interface IssueFix {
   result: string | null;
   createdAt: string;
 }
+
+// ===== Marketing Analytics (Phase 4) =====
+
+export const ANALYTICS_PROVIDERS = ["gsc", "ga4", "ads"] as const;
+export type AnalyticsProvider = (typeof ANALYTICS_PROVIDERS)[number];
+
+export const SYNC_STATUSES = ["queued", "running", "completed", "failed"] as const;
+export type SyncStatus = (typeof SYNC_STATUSES)[number];
+
+export interface AnalyticsConnection {
+  id: string;
+  tenantId: string;
+  provider: AnalyticsProvider;
+  accountId: string | null;
+  status: string;
+  lastSyncAt: string | null;
+  settings: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AnalyticsSync {
+  id: string;
+  tenantId: string;
+  provider: AnalyticsProvider;
+  status: SyncStatus;
+  startedAt: string;
+  finishedAt: string | null;
+  recordsProcessed: number;
+  error: string | null;
+}
+
+export interface GscRow {
+  id: string;
+  date: string;
+  query: string | null;
+  page: string | null;
+  country: string | null;
+  device: string | null;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+}
+
+export interface Ga4Row {
+  id: string;
+  date: string;
+  source: string | null;
+  medium: string | null;
+  campaign: string | null;
+  landingPage: string | null;
+  sessions: number;
+  users: number;
+  newUsers: number;
+  engagementRate: number;
+  conversions: number;
+  revenueAmount: number;
+}
+
+export interface AdsRow {
+  id: string;
+  date: string;
+  campaignId: string | null;
+  campaignName: string | null;
+  adGroup: string | null;
+  keyword: string | null;
+  clicks: number;
+  impressions: number;
+  costMicros: number;
+  conversions: number;
+  conversionValueMicros: number;
+}
+
+export interface GscReportRow {
+  query: string | null;
+  page: string | null;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+}
+
+export interface Ga4TrafficRow {
+  source: string | null;
+  medium: string | null;
+  sessions: number;
+  users: number;
+  conversionRate: number;
+  revenueAmount: number;
+}
+
+export interface AdsCampaignRow {
+  campaignName: string | null;
+  clicks: number;
+  impressions: number;
+  cost: number;
+  conversions: number;
+  conversionValue: number;
+  roas: number;
+}
+
+export interface AnalyticsOverviewKpis {
+  organicClicks: number;
+  organicImpressions: number;
+  organicCtr: number;
+  organicPosition: number;
+  sessions: number;
+  users: number;
+  conversions: number;
+  adClicks: number;
+  adSpend: number;
+  adRevenue: number;
+  roas: number;
+}
+
+export interface AnalyticsOverviewPoint {
+  date: string;
+  clicks: number;
+  impressions: number;
+  sessions: number;
+  adClicks: number;
+  adCost: number;
+  adRevenue: number;
+}
+
+export interface AnalyticsOverview {
+  startDate: string;
+  endDate: string;
+  kpis: AnalyticsOverviewKpis;
+  series: AnalyticsOverviewPoint[];
+}

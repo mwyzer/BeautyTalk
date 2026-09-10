@@ -244,3 +244,29 @@ export const createAuditSchema = z.object({
 });
 
 export type CreateAuditInput = z.infer<typeof createAuditSchema>;
+
+// ===== Marketing Analytics (Phase 4: Marketing Analytics) =====
+
+const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
+
+export const analyticsConnectSchema = z.object({
+  provider: z.enum(["gsc", "ga4", "ads"]),
+  code: z.string().trim().min(1).optional(),
+  accountId: z.string().trim().max(300).optional(),
+  demo: z.boolean().optional().default(false),
+});
+
+export const analyticsSyncSchema = z.object({
+  providers: z.array(z.enum(["gsc", "ga4", "ads"])).min(1).max(3).optional(),
+  startDate: z.string().regex(isoDatePattern, "startDate must be YYYY-MM-DD").optional(),
+  endDate: z.string().regex(isoDatePattern, "endDate must be YYYY-MM-DD").optional(),
+});
+
+export const analyticsReportQuerySchema = z.object({
+  startDate: z.string().regex(isoDatePattern, "startDate must be YYYY-MM-DD"),
+  endDate: z.string().regex(isoDatePattern, "endDate must be YYYY-MM-DD"),
+});
+
+export type AnalyticsConnectInput = z.infer<typeof analyticsConnectSchema>;
+export type AnalyticsSyncInput = z.infer<typeof analyticsSyncSchema>;
+export type AnalyticsReportQueryInput = z.infer<typeof analyticsReportQuerySchema>;

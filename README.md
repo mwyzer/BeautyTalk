@@ -185,11 +185,11 @@ Phase status **verified against the code** on 2026-09-10.
 | P0 — Foundations | Complete | Auth, tenant isolation, CI, migrations 001–002, seed — all present |
 | P1 — Commerce Core | Complete | Catalog/cart/checkout/orders/customers, sitemap/JSON-LD, 42 integration tests |
 | P2 — AI Content Engine | Complete | OpenAI + stub providers, draft lifecycle, quota, BullMQ queue, admin UI |
-| P3 — SEO Auditor | Complete | Crawler, rule engine, fix queue, BullMQ, admin UI, 46 tests |
-| P4 — Marketing Analytics | Not started (schema only) | `007_analytics.sql` only |
+| P3 — SEO Auditor | Complete | Crawler, rule engine, fix queue, BullMQ, admin UI, integration suite |
+| P4 — Marketing Analytics | Complete | GSC/GA4/Ads OAuth + encrypted tokens, sync queue/worker, reports, unified admin dashboard |
 | P5 — Recommendations | Not started (schema only) | `008_recommendations.sql` only |
 | P6 — Launch & Hardening | Partial (billing schema) | `009_billing.sql` + seed plans; no Stripe subscriptions |
 
-**Notes:** dev stack is Postgres 16 + Redis 7 (no MinIO service in `docker-compose.yml` — object storage is a design target, not wired). Integration suite is 46 tests (auth 10, tenant isolation 6, commerce 14, content 12, SEO auditor 4).
+**Notes:** dev stack is Postgres 16 + Redis 7 (no MinIO service in `docker-compose.yml` — object storage is a design target, not wired). Integration suite is 51 tests (auth 10, tenant isolation 6, commerce 14, content 12, SEO auditor 4, marketing analytics 5, run per-suite due to shared test DB).
 
 See [docs/PROGRESS.md](docs/PROGRESS.md) for detailed per-phase deliverable tracking — each phase has its own file under [docs/phases/](docs/phases/).

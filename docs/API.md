@@ -43,7 +43,7 @@ Common status codes: 200, 201, 204, 400, 401, 403, 404, 409, 422, 429, 500, 503.
 
 ### 1.2 Implementation Status (Phase 0–2)
 
-The spec below is the target API for all phases. Sections marked **Implemented** are live behind the v1 router. Deferred phases (SEO Auditor, Analytics, Recommendations, Billing) remain backward-compatible designs.
+The spec below is the target API for all phases. Sections marked **Implemented** are live behind the v1 router. P3 SEO Auditor and P4 Analytics are implemented (see §8/§9 notes); Recommendations and Billing remain backward-compatible designs.
 
 **Implemented endpoint surface (Phase 0–2):**
 
@@ -334,9 +334,11 @@ Behavior:
 
 ## 9. Analytics (GSC / GA4 / Ads)
 
+> **Implemented (Phase 4).** Live endpoints live under the merchant admin router (`/admin/analytics/...`, bearer token + `owner`/`editor` role) and differ slightly from the target surface below: connections sync in one POST instead of per-provider paths, reports are `GET /reports/gsc | ga4 | ads` and the unified view is `GET /overview`. OAuth entry is `GET /oauth/:provider` (returns `{ url, configured }`); `POST /connections` accepts `{ provider, code?, accountId?, demo? }`. Without `GOOGLE_*` env vars the fetcher runs in stub/demo mode.
+
 | Method | Path | Description |
 |---|---|---|
-| GET | `/analytics/integrations` | Connected integrations + status |
+| GET | `/analytics/integrations` | Connected integrations + status → `GET /admin/analytics/connections` |
 | POST | `/analytics/integrations/gsc` | Connect GSC (OAuth flow) |
 | POST | `/analytics/integrations/ga4` | Connect GA4 |
 | POST | `/analytics/integrations/ads` | Connect Google Ads |

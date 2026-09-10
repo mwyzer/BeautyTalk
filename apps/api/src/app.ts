@@ -16,9 +16,13 @@ import { createAdminOrdersRouter } from "./modules/orders/index.js";
 import { createCustomerAuthRouter, createCustomerAccountRouter, createCustomerAdminRouter, createCustomerAuthService } from "./modules/customers/index.js";
 import { createContentService, createAdminContentRouter, createContentProvider } from "./modules/content/index.js";
 import { createAuditService, createAdminAuditRouter, type AuditService } from "./modules/audit/index.js";
+import { createAnalyticsService, createAdminAnalyticsRouter, type AnalyticsService } from "./modules/analytics/index.js";
 import type { ContentProvider } from "./content/types.js";
 import type { ContentJobClient } from "./jobs/contentQueue.js";
 import type { AuditJobClient } from "./jobs/crawlQueue.js";
+import type { AnalyticsJobClient } from "./jobs/analyticsQueue.js";
+import type { AnalyticsFetcher } from "./analytics/types.js";
+import { createGoogleAnalyticsFetcher } from "./analytics/provider.js";
 import { findActiveMemberships } from "./repositories/memberships.repo.js";
 import { findTenantById } from "./repositories/tenants.repo.js";
 
@@ -29,9 +33,12 @@ export interface AppDeps {
   jobs?: ContentJobClient | null;
   auditJobs?: AuditJobClient | null;
   auditService?: AuditService | null;
+  analyticsFetcher?: AnalyticsFetcher | null;
+  analyticsJobs?: AnalyticsJobClient | null;
+  analyticsService?: AnalyticsService | null;
 }
 
-export function createApp({ db, config, contentProvider, jobs, auditJobs, auditService }: AppDeps): express.Express {
+export function createApp({ db, config, contentProvider, jobs, auditJobs, auditService, analyticsFetcher, analyticsJobs, analyticsService }: AppDeps): express.Express {
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
@@ -63,6 +70,16 @@ export function createApp({ db, config, contentProvider, jobs, auditJobs, auditS
   const merchantAuthenticate = authenticate(config);
   const content = createContentService({ db, provider: contentProvider === undefined ? createContentProvider(config) : contentProvider });
   const audit = auditService ?? createAuditService({ db, storefrontUrl: config.STOREFRONT_URL ?? "http://localhost:4321" });
+  const analyticsProvider =
+    analyticsFetcher == null
+      ? createGoogleAnalyticsFetcher({
+          clientId: config.GOOGLE_OAUTH_CLIENT_ID,
+          clientSecret: config.GOOGLE_OAUTH_CLIENT_SECRET,
+          redirectUri: config.GOOGLE_REDIRECT_URI ?? `${config.STOREFRONT_URL ?? "http://localhost:4321"}/admin/analytics`,
+          adsDeveloperToken: config.GOOGLE_ADS_DEVELOPER_TOKEN,
+        })
+      : analyticsFetcher;
+  const analytics = analyticsService ?? createAnalyticsService({ db, fetcher: analyticsProvider, config });
 
   const api = express.Router();
   api.use("/auth", createAuthRouter(auth));
@@ -104,6 +121,7 @@ export function createApp({ db, config, contentProvider, jobs, auditJobs, auditS
   api.use("/admin/customers", merchantAuthenticate, requireRoles("owner", "editor"), createCustomerAdminRouter(db));
   api.use("/admin/content", merchantAuthenticate, requireRoles("owner", "editor"), createAdminContentRouter({ db, service: content, jobs }));
   api.use("/admin/seo", merchantAuthenticate, requireRoles("owner", "editor"), createAdminAuditRouter({ db, service: audit, jobs: auditJobs }));
+  api.use("/admin/analytics", merchantAuthenticate, requireRoles("owner", "editor"), createAdminAnalyticsRouter({ service: analytics, jobs: analyticsJobs }));
 
   // Customer self-service (customer JWT). Mounted after merchant /me so GET /me stays merchant-only.
   api.use("/me", createCustomerAccountRouter(db, config));
