@@ -8,9 +8,11 @@ import { createGoogleAnalyticsFetcher } from "./modules/analytics/index.js";
 import { createContentJobClient } from "./jobs/contentQueue.js";
 import { createAuditJobClient } from "./jobs/crawlQueue.js";
 import { createAnalyticsJobClient } from "./jobs/analyticsQueue.js";
+import { createRecJobClient } from "./jobs/recQueue.js";
 import { startContentWorker, type ContentWorkerHandle } from "./workers/contentWorker.js";
 import { startAuditWorker, type AuditWorkerHandle } from "./workers/crawlWorker.js";
 import { startAnalyticsWorker, type AnalyticsWorkerHandle } from "./workers/analyticsWorker.js";
+import { startRecWorker, type RecWorkerHandle } from "./workers/recWorker.js";
 
 const config = createConfig();
 const db = createPool({ connectionString: config.DATABASE_URL });
@@ -25,8 +27,9 @@ const analyticsFetcher = createGoogleAnalyticsFetcher({
   adsDeveloperToken: config.GOOGLE_ADS_DEVELOPER_TOKEN,
 });
 const analyticsJobs = createAnalyticsJobClient(config);
+const recJobs = createRecJobClient(config);
 
-const app = createApp({ db, config, contentProvider: provider, jobs, auditJobs, analyticsFetcher, analyticsJobs });
+const app = createApp({ db, config, contentProvider: provider, jobs, auditJobs, analyticsFetcher, analyticsJobs, recJobs });
 
 let worker: ContentWorkerHandle | undefined;
 let auditWorker: AuditWorkerHandle | undefined;
@@ -58,6 +61,13 @@ if (config.REDIS_URL) {
   });
   console.log("Analytics sync worker started (async queue).");
 }
+let recWorker: RecWorkerHandle | undefined;
+let recConnection: Redis | undefined;
+if (config.REDIS_URL) {
+  recConnection = new Redis(config.REDIS_URL, { maxRetriesPerRequest: null });
+  recWorker = startRecWorker({ db, connection: recConnection });
+  console.log("Recommendation refresh worker started (async queue).");
+}
 
 const server = app.listen(config.PORT, () => {
   console.log(`BeautyAI API listening on http://localhost:${config.PORT} (${config.NODE_ENV})`);
@@ -82,9 +92,14 @@ async function shutdown(signal: string): Promise<void> {
       await analyticsWorker.close();
       await analyticsConnection?.quit();
     }
+    if (recWorker) {
+      await recWorker.close();
+      await recConnection?.quit();
+    }
     if (jobs) await jobs.close();
     if (auditJobs) await auditJobs.close();
     if (analyticsJobs) await analyticsJobs.close();
+    if (recJobs) await recJobs.close();
     await db.end();
     process.exit(0);
   });

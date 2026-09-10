@@ -93,6 +93,16 @@ const jsonLdItems = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     </footer>
 
     <CartDrawer client:load />
+    <script is:inline>
+      (function () {
+        var existing = document.cookie.split("; ").some(function (r) { return r.indexOf("bt_sid=") === 0; });
+        if (existing) return;
+        var sid = (window.crypto && "randomUUID" in window.crypto)
+          ? window.crypto.randomUUID()
+          : "s-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+        document.cookie = "bt_sid=" + sid + "; path=/; max-age=31536000; SameSite=Lax";
+      })();
+    </script>
     <script>
       document.querySelectorAll("[data-cart-open]").forEach((el) => {
         el.addEventListener("click", () => {

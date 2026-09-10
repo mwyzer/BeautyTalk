@@ -1,4 +1,11 @@
-import type { Cart, CollectionDetail, CollectionSummary, Product, ProductImage } from "@beautyai/shared";
+import type {
+  Cart,
+  CollectionDetail,
+  CollectionSummary,
+  Product,
+  ProductImage,
+  ProductRecommendation,
+} from "@beautyai/shared";
 
 // The browser follows the build-time PUBLIC_API_URL (baked in), but during
 // SSR the container must reach the API over the docker network, so allow a
@@ -53,6 +60,55 @@ export async function fetchCollectionByHandle(handle: string): Promise<Collectio
 
 export async function fetchCollectionProducts(handle: string): Promise<Product[]> {
   return getJson<Product[]>(`/api/v1/collections/${handle}/products`);
+}
+
+// ===== Recommendations (P5) =====
+
+const SESSION_COOKIE = "bt_sid";
+
+export function ensureSessionId(): string {
+  const existing = document.cookie.split("; ").find((r) => r.startsWith(`${SESSION_COOKIE}=`))?.split("=")[1];
+  if (existing) return existing;
+  const sid =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  document.cookie = `${SESSION_COOKIE}=${sid}; path=/; max-age=31536000; SameSite=Lax`;
+  return sid;
+}
+
+export function readSessionId(): string | null {
+  return document.cookie.split("; ").find((r) => r.startsWith(`${SESSION_COOKIE}=`))?.split("=")[1] ?? null;
+}
+
+export async function fetchProductRecommendations(path: string): Promise<ProductRecommendation[]> {
+  try {
+    return await getJson<ProductRecommendation[]>(path);
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchHomeRecommended(limit: number, sessionId?: string): Promise<ProductRecommendation[]> {
+  const qs = new URLSearchParams({ limit: String(limit) });
+  if (sessionId) qs.set("sessionId", sessionId);
+  return fetchProductRecommendations(`/api/v1/home/recommended?${qs.toString()}`);
+}
+
+export async function recordCustomerEvent(
+  input: {
+    event: "product_view" | "add_to_cart";
+    productHandle?: string;
+    variantId?: string;
+    quantity?: number;
+  },
+): Promise<void> {
+  const sessionId = ensureSessionId();
+  await fetch(`${API_URL}/api/v1/events`, {
+    method: "POST",
+    headers: { ...baseHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionId, event: input.event, productHandle: input.productHandle, variantId: input.variantId, quantity: input.quantity }),
+  });
 }
 
 export function productImage(product: { images?: ProductImage[] }): string | null {

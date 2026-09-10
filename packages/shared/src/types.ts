@@ -569,3 +569,56 @@ export interface AnalyticsOverview {
   kpis: AnalyticsOverviewKpis;
   series: AnalyticsOverviewPoint[];
 }
+
+// ===== Recommendations (Phase 5: AI Product Recommendations) =====
+
+export const RECOMMENDATION_STRATEGIES = ["popular", "related", "bought_together", "personalized"] as const;
+export type RecommendationStrategy = (typeof RECOMMENDATION_STRATEGIES)[number];
+
+export const CUSTOMER_EVENT_TYPES = ["product_view", "add_to_cart"] as const;
+export type CustomerEventType = (typeof CUSTOMER_EVENT_TYPES)[number];
+
+export interface RecRelatedConfig {
+  enabled: boolean;
+  limit: number;
+  weightCollection: number;
+  weightTag: number;
+}
+
+export interface RecBoughtTogetherConfig {
+  enabled: boolean;
+  limit: number;
+  minPairs: number;
+}
+
+export interface RecHomeConfig {
+  enabled: boolean;
+  limit: number;
+  windowDays: number;
+}
+
+export interface RecPersonalizedConfig {
+  enabled: boolean;
+  limit: number;
+  lookbackDays: number;
+}
+
+export interface RecStrategyConfig {
+  related: RecRelatedConfig;
+  boughtTogether: RecBoughtTogetherConfig;
+  home: RecHomeConfig;
+  personalized: RecPersonalizedConfig;
+}
+
+export interface ProductRecommendation {
+  product: Product;
+  strategy: RecommendationStrategy;
+  score: number;
+}
+
+export interface RecRefreshResult {
+  ok: boolean;
+  counts: Record<string, number>;
+  generatedAt: string;
+  queued: boolean;
+}

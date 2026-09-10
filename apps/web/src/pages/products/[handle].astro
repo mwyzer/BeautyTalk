@@ -2,7 +2,14 @@
 import type { Product } from "@beautyai/shared";
 import Storefront from "../../layouts/Storefront.astro";
 import ProductBuy from "../../components/ProductBuy.tsx";
-import { fetchProductByHandle, productImage, productUrl, storefrontAbsolute } from "../../lib/api";
+import ProductCard from "../../components/ProductCard.astro";
+import {
+  fetchProductByHandle,
+  fetchProductRecommendations,
+  productImage,
+  productUrl,
+  storefrontAbsolute,
+} from "../../lib/api";
 
 const { handle } = Astro.params;
 const product: Product | null = await fetchProductByHandle(handle ?? "");
@@ -10,6 +17,16 @@ const product: Product | null = await fetchProductByHandle(handle ?? "");
 if (!product) {
   return Astro.redirect("/search");
 }
+
+const [relatedRecs, boughtTogetherRecs] = await Promise.all([
+  fetchProductRecommendations(`/api/v1/products/${product.handle}/related?limit=4`),
+  fetchProductRecommendations(`/api/v1/products/${product.handle}/bought-together?limit=4`),
+]);
+const relatedProducts = relatedRecs.map((r) => r.product);
+const boughtTogetherProducts = boughtTogetherRecs.map((r) => r.product);
+
+const clientApiUrl = (import.meta.env.PUBLIC_API_URL as string | undefined) ?? "http://localhost:4000";
+
 const pageUrl = storefrontAbsolute(productUrl(product.handle));
 const seoTitle = product.seo?.metaTitle ?? `${product.title} — BeautyTalk`;
 const seoDescription =
@@ -68,7 +85,7 @@ const jsonLd = {
         <h1 class="pdp-title">{product.title}</h1>
         {product.description && <p style={{ color: "var(--ink-soft)", maxWidth: "46ch" }}>{product.description}</p>}
 
-        <ProductBuy client:load variants={product.variants} />
+        <ProductBuy client:load variants={product.variants} productHandle={product.handle} />
 
         {product.tags.length > 0 && (
           <div class="meta-row" style={{ marginTop: 24 }}>
@@ -82,4 +99,62 @@ const jsonLd = {
       </div>
     </section>
   </div>
+
+  {relatedProducts.length > 0 && (
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <h2>You May Also Like</h2>
+        </div>
+        <div class="grid">
+          {relatedProducts.map((p) => <ProductCard product={p} />)}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {boughtTogetherProducts.length > 0 && (
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <h2>Customers Also Bought</h2>
+        </div>
+        <div class="grid">
+          {boughtTogetherProducts.map((p) => <ProductCard product={p} />)}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <script
+    is:inline
+    data-api={clientApiUrl}
+    data-slug={import.meta.env.PUBLIC_STORE_SLUG ?? "glow-co"}
+    data-handle={product.handle}
+  >
+    (function () {
+      var cfg = document.currentScript && document.currentScript.dataset;
+      if (!cfg || !cfg.api || !cfg.slug || !cfg.handle) return;
+      try {
+        if (localStorage.getItem("bt_view_" + cfg.handle)) return;
+        localStorage.setItem("bt_view_" + cfg.handle, "1");
+      } catch (err) {
+        return;
+      }
+      function sid() {
+        var parts = document.cookie.split("; ");
+        for (var i = 0; i < parts.length; i++) {
+          if (parts[i].indexOf("bt_sid=") === 0) return parts[i].split("=")[1];
+        }
+        return "";
+      }
+      var s = sid();
+      if (!s) return;
+      fetch(cfg.api + "/api/v1/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Tenant-Slug": cfg.slug },
+        body: JSON.stringify({ event: "product_view", productHandle: cfg.handle, sessionId: s })
+      }).catch(function () {});
+    })();
+  </script>
 </Storefront>

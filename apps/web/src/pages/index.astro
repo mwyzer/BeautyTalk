@@ -1,14 +1,19 @@
 ---
 import Storefront from "../layouts/Storefront.astro";
-import { fetchCollections, fetchProducts, productImage } from "../lib/api";
+import { fetchCollections, fetchHomeRecommended, fetchProducts, productImage } from "../lib/api";
 import ProductCard from "../components/ProductCard.astro";
 
-const [products, collections] = await Promise.all([
+const sessionId = Astro.cookies.get("bt_sid")?.value;
+
+const [featuredResults, collections, homeRecs] = await Promise.all([
   fetchProducts({ limit: 6 }),
   fetchCollections(),
+  fetchHomeRecommended(8, sessionId ?? undefined),
 ]);
 
-const featured = products.data.filter((p) => p.status === "active" && p.variants.length > 0);
+const featured = featuredResults.data.filter((p) => p.status === "active" && p.variants.length > 0);
+const recommended = homeRecs.map((r) => r.product);
+const bestsellers = recommended.length > 0 ? recommended : featured.slice(0, 8);
 const featureCollections = collections.filter((c) => c.productCount > 0).slice(0, 3);
 ---
 
@@ -64,11 +69,11 @@ const featureCollections = collections.filter((c) => c.productCount > 0).slice(0
         <h2>Bestsellers</h2>
         <a href="/search" class="icon-btn">Browse everything →</a>
       </div>
-      {featured.length === 0 ? (
+      {bestsellers.length === 0 ? (
         <div class="notice">The catalog is being stocked — check back soon.</div>
       ) : (
         <div class="grid">
-          {featured.slice(0, 8).map((p) => <ProductCard product={p} />)}
+          {bestsellers.slice(0, 8).map((p) => <ProductCard product={p} />)}
         </div>
       )}
     </div>

@@ -270,3 +270,60 @@ export const analyticsReportQuerySchema = z.object({
 export type AnalyticsConnectInput = z.infer<typeof analyticsConnectSchema>;
 export type AnalyticsSyncInput = z.infer<typeof analyticsSyncSchema>;
 export type AnalyticsReportQueryInput = z.infer<typeof analyticsReportQuerySchema>;
+
+// ===== Recommendations (Phase 5: AI Product Recommendations) =====
+
+const positiveNumber = z.number().min(0);
+const weightNumber = z.number().min(0).max(100);
+
+export const recStrategyConfigSchema = z.object({
+  related: z
+    .object({
+      enabled: z.boolean().default(true),
+      limit: z.number().int().min(1).max(50).default(8),
+      weightCollection: weightNumber.default(1),
+      weightTag: weightNumber.default(1),
+    })
+    .partial()
+    .default({}),
+  boughtTogether: z
+    .object({
+      enabled: z.boolean().default(true),
+      limit: z.number().int().min(1).max(50).default(4),
+      minPairs: z.number().int().min(1).max(10_000).default(1),
+    })
+    .partial()
+    .default({}),
+  home: z
+    .object({
+      enabled: z.boolean().default(true),
+      limit: z.number().int().min(1).max(50).default(8),
+      windowDays: z.number().int().min(1).max(3650).default(90),
+    })
+    .partial()
+    .default({}),
+  personalized: z
+    .object({
+      enabled: z.boolean().default(true),
+      limit: z.number().int().min(1).max(50).default(8),
+      lookbackDays: z.number().int().min(1).max(365).default(14),
+    })
+    .partial()
+    .default({}),
+});
+
+export const recEventSchema = z
+  .object({
+    event: z.enum(["product_view", "add_to_cart"]),
+    sessionId: z.string().trim().min(1, "sessionId is required").max(200),
+    productHandle: z.string().trim().min(1).max(300).optional(),
+    variantId: z.string().uuid("variantId must be a valid id").optional(),
+    quantity: z.number().int().min(1).max(99).optional(),
+  })
+  .refine((v) => Boolean(v.productHandle) || Boolean(v.variantId), {
+    message: "either productHandle or variantId is required",
+    path: ["productHandle"],
+  });
+
+export type RecStrategyConfigInput = z.infer<typeof recStrategyConfigSchema>;
+export type RecEventInput = z.infer<typeof recEventSchema>;

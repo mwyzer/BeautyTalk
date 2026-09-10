@@ -1,12 +1,14 @@
 import { useState, type ReactElement } from "react";
 import type { ProductVariant } from "@beautyai/shared";
 import { cents } from "../lib/format";
+import { recordCustomerEvent } from "../lib/api";
 
 interface Props {
   variants: ProductVariant[];
+  productHandle?: string;
 }
 
-export default function ProductBuy({ variants }: Props): ReactElement {
+export default function ProductBuy({ variants, productHandle }: Props): ReactElement {
   const [variantId, setVariantId] = useState<string>(variants[0]?.id ?? "");
   const [quantity, setQuantity] = useState(1);
   const variant = variants.find((v) => v.id === variantId) ?? variants[0];
@@ -16,6 +18,7 @@ export default function ProductBuy({ variants }: Props): ReactElement {
   const add = (): void => {
     if (!variant) return;
     document.dispatchEvent(new CustomEvent("cart:add", { detail: { variantId: variant.id, quantity } }));
+    void recordCustomerEvent({ event: "add_to_cart", variantId: variant.id, productHandle, quantity }).catch(() => {});
   };
 
   return (

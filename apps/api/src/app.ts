@@ -17,10 +17,12 @@ import { createCustomerAuthRouter, createCustomerAccountRouter, createCustomerAd
 import { createContentService, createAdminContentRouter, createContentProvider } from "./modules/content/index.js";
 import { createAuditService, createAdminAuditRouter, type AuditService } from "./modules/audit/index.js";
 import { createAnalyticsService, createAdminAnalyticsRouter, type AnalyticsService } from "./modules/analytics/index.js";
+import { createRecommendationService, createPublicEventsRouter, createPublicProductRecsRouter, createPublicHomeRouter, createAdminRecommendationsRouter, type RecommendationService } from "./modules/recommendations/index.js";
 import type { ContentProvider } from "./content/types.js";
 import type { ContentJobClient } from "./jobs/contentQueue.js";
 import type { AuditJobClient } from "./jobs/crawlQueue.js";
 import type { AnalyticsJobClient } from "./jobs/analyticsQueue.js";
+import type { RecJobClient } from "./jobs/recQueue.js";
 import type { AnalyticsFetcher } from "./analytics/types.js";
 import { createGoogleAnalyticsFetcher } from "./analytics/provider.js";
 import { findActiveMemberships } from "./repositories/memberships.repo.js";
@@ -36,9 +38,11 @@ export interface AppDeps {
   analyticsFetcher?: AnalyticsFetcher | null;
   analyticsJobs?: AnalyticsJobClient | null;
   analyticsService?: AnalyticsService | null;
+  recJobs?: RecJobClient | null;
+  recService?: RecommendationService | null;
 }
 
-export function createApp({ db, config, contentProvider, jobs, auditJobs, auditService, analyticsFetcher, analyticsJobs, analyticsService }: AppDeps): express.Express {
+export function createApp({ db, config, contentProvider, jobs, auditJobs, auditService, analyticsFetcher, analyticsJobs, analyticsService, recJobs, recService }: AppDeps): express.Express {
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
@@ -80,11 +84,17 @@ export function createApp({ db, config, contentProvider, jobs, auditJobs, auditS
         })
       : analyticsFetcher;
   const analytics = analyticsService ?? createAnalyticsService({ db, fetcher: analyticsProvider, config });
+  const recs = recService ?? createRecommendationService({ db });
 
   const api = express.Router();
   api.use("/auth", createAuthRouter(auth));
 
   // Public storefront API (tenant resolved from the X-Tenant-Slug header).
+  // Public recommendation endpoints are mounted at specific paths so resolveTenant
+  // does not intercept unrelated requests (admin, catalog, etc.).
+  api.use("/events", createPublicEventsRouter(db, recs));
+  api.use("/home", createPublicHomeRouter(db, recs));
+  api.use("/products", createPublicProductRecsRouter(db, recs));
   api.use("/products", createPublicProductsRouter(db));
   api.use("/collections", createPublicCollectionsRouter(db));
   api.use("/carts", createCartsRouter(db));
@@ -122,6 +132,7 @@ export function createApp({ db, config, contentProvider, jobs, auditJobs, auditS
   api.use("/admin/content", merchantAuthenticate, requireRoles("owner", "editor"), createAdminContentRouter({ db, service: content, jobs }));
   api.use("/admin/seo", merchantAuthenticate, requireRoles("owner", "editor"), createAdminAuditRouter({ db, service: audit, jobs: auditJobs }));
   api.use("/admin/analytics", merchantAuthenticate, requireRoles("owner", "editor"), createAdminAnalyticsRouter({ service: analytics, jobs: analyticsJobs }));
+  api.use("/admin/recommendations", merchantAuthenticate, requireRoles("owner", "editor"), createAdminRecommendationsRouter({ service: recs, jobs: recJobs }));
 
   // Customer self-service (customer JWT). Mounted after merchant /me so GET /me stays merchant-only.
   api.use("/me", createCustomerAccountRouter(db, config));

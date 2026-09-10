@@ -1,0 +1,2 @@
+export { createRecommendationService, defaultRecConfig, type RecommendationService, type RecRefreshResult } from "./service.js";
+export { createPublicEventsRouter, createPublicProductRecsRouter, createPublicHomeRouter, createAdminRecommendationsRouter } from "./routes.js";
