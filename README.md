@@ -19,53 +19,53 @@ A B2B SaaS platform that gives beauty brands a unified commerce experience with 
 ```mermaid
 flowchart LR
     subgraph Clients
-        BR[Browser]
-        SF[Storefront<br/>Astro SSR]
-        AD[Admin<br/>React SPA]
+        BR["Browser"]
+        SF["Storefront\nAstro SSR"]
+        AD["Admin\nReact SPA"]
     end
 
     subgraph Platform
-        API[API Service<br/>Express + TypeScript]
-        Q[(Redis<br/>BullMQ queues)]
-        PG[(PostgreSQL 16)]
-        OBJ[(Object Storage<br/>S3 / MinIO)]
+        API["API Service\nExpress + TypeScript"]
+        Q[("Redis\nBullMQ queues")]
+        PG[("PostgreSQL 16")]
+        OBJ[("Object Storage\nS3 / MinIO")]
 
         subgraph Workers
-            CW[Content Worker]
-            AW[Crawl & Audit Worker]
-            SW[Analytics Sync Worker]
-            RW[Rec Worker]
+            CW["Content Worker"]
+            AW["Crawl & Audit Worker"]
+            SW["Analytics Sync Worker"]
+            RW["Rec Worker"]
         end
     end
 
     subgraph External
-        ST[Stripe]
-        LLM[LLM API]
-        GO[Google APIs<br/>GSC / GA4 / Ads]
-        TL[Target Storefront]
+        ST["Stripe"]
+        LLM["LLM API"]
+        GO["Google APIs\nGSC / GA4 / Ads"]
+        TL["Target Storefront"]
     end
 
     BR --> SF
     BR --> AD
-    SF -->|REST /api/v1| API
-    AD -->|REST /api/v1| API
+    SF -->|"REST /api/v1"| API
+    AD -->|"REST /api/v1"| API
     API <--> PG
     API --> Q
     API --> OBJ
-    API -->|Checkout sessions + webhooks| ST
+    API -->|"Checkout sessions + webhooks"| ST
     Q --> CW
     Q --> AW
     Q --> SW
     Q --> RW
-    CW -->|content generation| LLM
-    AW -->|Playwright + Lighthouse| TL
+    CW -->|"content generation"| LLM
+    AW -->|"Playwright + Lighthouse"| TL
     SW --> GO
     CW --> PG
     AW --> PG
     SW --> PG
     RW --> PG
-    SF -->|SSR pages, SEO meta, JSON-LD| BR
-    AD -->|dashboard, fix queue, content studio| BR
+    SF -->|"SSR pages, SEO meta, JSON-LD"| BR
+    AD -->|"dashboard, fix queue, content studio"| BR
 ```
 
 ### Entity Relationship
@@ -80,7 +80,7 @@ erDiagram
     products ||--o{ variants : "has"
     products ||--o{ product_images : "has"
     products ||--o{ product_seo : "has"
-    products }o--o{ collections : "in (product_collection)"
+    products }o--o{ collections : "in collection"
     variants ||--o| inventory : "tracks"
     tenants ||--o{ carts : "owns"
     carts ||--o{ cart_items : "contains"
@@ -120,13 +120,13 @@ erDiagram
 | Admin | React SPA (Vite) |
 | Database | PostgreSQL 16 (multi-tenant schema) |
 | Cache / Queues | Redis + BullMQ |
-| Object storage | S3-compatible (MinIO for dev, AWS S3/GCS for prod) |
+| Object storage | S3-compatible (design target; not wired in dev) |
 | Payments | Stripe (Checkout + webhooks) |
 | Testing | Vitest (unit + Postgres-backed integration) |
 
 ## Getting Started
 
-**Prerequisites:** Node.js ≥ 20, Docker (for Postgres/Redis/MinIO dev services).
+**Prerequisites:** Node.js ≥ 20, Docker (for the Postgres/Redis dev services).
 
 ```bash
 npm ci
@@ -134,6 +134,8 @@ cp .env.example .env.local   # configure secrets / Stripe keys
 npm run db:reset             # create schema, seed demo@glow.co / Password123!
 npm run dev                  # API :4000 · storefront :4321 · admin :5173
 ```
+
+**Demo login (admin dashboard):** `demo@glow.co` / `Password123!`
 
 Storefront and customer endpoints resolve the store via the `X-Tenant-Slug` header. Stripe checkout degrades to `503` until live keys are set.
 
@@ -176,4 +178,18 @@ docs/        PRD, architecture, API, DB schema, roadmap, ADRs
 
 ## Status
 
-Phase 0 (foundations) and Phase 1 (commerce core) are complete: catalog/admin/storefront, cart drawer, Stripe checkout, webhooks → orders, customer accounts, and SEO metadata. Next up is the AI content engine and SEO auditor.
+Phase status **verified against the code** on 2026-09-10.
+
+| Phase | Status | Verified |
+|---|---|---|
+| P0 — Foundations | Complete | Auth, tenant isolation, CI, migrations 001–002, seed — all present |
+| P1 — Commerce Core | Complete | Catalog/cart/checkout/orders/customers, sitemap/JSON-LD, 42 integration tests |
+| P2 — AI Content Engine | Complete | OpenAI + stub providers, draft lifecycle, quota, BullMQ queue, admin UI |
+| P3 — SEO Auditor | Complete | Crawler, rule engine, fix queue, BullMQ, admin UI, 46 tests |
+| P4 — Marketing Analytics | Not started (schema only) | `007_analytics.sql` only |
+| P5 — Recommendations | Not started (schema only) | `008_recommendations.sql` only |
+| P6 — Launch & Hardening | Partial (billing schema) | `009_billing.sql` + seed plans; no Stripe subscriptions |
+
+**Notes:** dev stack is Postgres 16 + Redis 7 (no MinIO service in `docker-compose.yml` — object storage is a design target, not wired). Integration suite is 46 tests (auth 10, tenant isolation 6, commerce 14, content 12, SEO auditor 4).
+
+See [docs/PROGRESS.md](docs/PROGRESS.md) for detailed per-phase deliverable tracking — each phase has its own file under [docs/phases/](docs/phases/).

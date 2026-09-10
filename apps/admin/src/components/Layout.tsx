@@ -81,6 +81,7 @@ export function AdminLayout({
     { key: "orders", label: "Orders" },
     { key: "customers", label: "Customers" },
     { key: "content", label: "Content" },
+    { key: "seo", label: "SEO" },
   ];
   return (
     <div className="admin">

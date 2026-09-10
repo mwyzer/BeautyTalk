@@ -233,3 +233,14 @@ export const draftUpdateSchema = z.object({
 export type BrandToneUpdateInput = z.infer<typeof brandToneUpdateSchema>;
 export type ContentGenerateInput = z.infer<typeof contentGenerateSchema>;
 export type DraftUpdateInput = z.infer<typeof draftUpdateSchema>;
+
+// ===== SEO Audit (Phase 3: SEO Auditor) =====
+
+export const createAuditSchema = z.object({
+  name: z.string().trim().min(1).max(120).optional().nullable(),
+  crawlDepth: z.number().int().min(1).max(10).optional().default(3),
+  excludePatterns: z.array(z.string().trim().min(1)).max(50).optional().default([]),
+  maxUrls: z.number().int().min(1).max(10_000).optional().default(200),
+});
+
+export type CreateAuditInput = z.infer<typeof createAuditSchema>;

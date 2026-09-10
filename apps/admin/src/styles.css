@@ -333,6 +333,12 @@ textarea:focus {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-row input {
+  width: 260px;
+  margin: 0;
 }
 
 .filter-pill {
@@ -457,4 +463,96 @@ textarea:focus {
 
 .notes-row textarea {
   flex: 1;
+}
+
+.table-card select {
+  width: auto;
+  margin: 0;
+  padding: 6px 10px;
+}
+
+.top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.summary-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+
+.metric-label {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 2px 0;
+}
+
+.score {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.score-good {
+  color: var(--ok);
+}
+
+.score-mid {
+  color: var(--warn);
+}
+
+.score-bad {
+  color: var(--err);
+}
+
+.subhead {
+  margin: 22px 0 10px;
+  font-size: 16px;
+}
+
+.break-word {
+  word-break: break-word;
+}
+
+.inline-label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.inline-label select {
+  margin: 0;
+}
+
+.row-gap {
+  display: flex;
+  gap: 6px;
+}
+
+.pad {
+  padding: 14px;
+}
+
+.alert-info {
+  background: #e6eef7;
+  color: #33557d;
+  border: 1px solid #c9dbf0;
 }

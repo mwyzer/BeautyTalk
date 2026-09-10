@@ -4,7 +4,7 @@ import { createConfig } from "../config/env.js";
 
 describe("content job queue", () => {
   const base = {
-    DATABASE_URL: "postgres://beautyai:beautyai_dev@localhost:5432/beautyai_test",
+    DATABASE_URL: process.env.DATABASE_URL_TEST ?? process.env.DATABASE_URL ?? "postgres://localhost:5432/beautyai_test",
     JWT_ACCESS_SECRET: "test_access_secret_at_least_16_chars",
     JWT_REFRESH_SECRET: "test_refresh_secret_at_least_16_chars",
   };

@@ -5,22 +5,36 @@ import { createApp } from "./app.js";
 import { createConfig } from "./config/env.js";
 import { createContentProvider } from "./modules/content/index.js";
 import { createContentJobClient } from "./jobs/contentQueue.js";
+import { createAuditJobClient } from "./jobs/crawlQueue.js";
 import { startContentWorker, type ContentWorkerHandle } from "./workers/contentWorker.js";
+import { startAuditWorker, type AuditWorkerHandle } from "./workers/crawlWorker.js";
 
 const config = createConfig();
 const db = createPool({ connectionString: config.DATABASE_URL });
 
 const provider = createContentProvider(config);
 const jobs = createContentJobClient(config);
+const auditJobs = createAuditJobClient(config);
 
-const app = createApp({ db, config, contentProvider: provider, jobs });
+const app = createApp({ db, config, contentProvider: provider, jobs, auditJobs });
 
 let worker: ContentWorkerHandle | undefined;
+let auditWorker: AuditWorkerHandle | undefined;
 let workerConnection: Redis | undefined;
 if (provider && config.REDIS_URL) {
   workerConnection = new Redis(config.REDIS_URL, { maxRetriesPerRequest: null });
   worker = startContentWorker({ db, provider, connection: workerConnection });
   console.log("Content generation worker started (async queue).");
+}
+let auditConnection: Redis | undefined;
+if (config.REDIS_URL) {
+  auditConnection = new Redis(config.REDIS_URL, { maxRetriesPerRequest: null });
+  auditWorker = startAuditWorker({
+    db,
+    connection: auditConnection,
+    storefrontUrl: config.STOREFRONT_URL ?? "http://localhost:4321",
+  });
+  console.log("SEO audit worker started (async queue).");
 }
 
 const server = app.listen(config.PORT, () => {
@@ -38,7 +52,12 @@ async function shutdown(signal: string): Promise<void> {
       await worker.close();
       await workerConnection?.quit();
     }
+    if (auditWorker) {
+      await auditWorker.close();
+      await auditConnection?.quit();
+    }
     if (jobs) await jobs.close();
+    if (auditJobs) await auditJobs.close();
     await db.end();
     process.exit(0);
   });

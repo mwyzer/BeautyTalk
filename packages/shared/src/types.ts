@@ -332,3 +332,108 @@ export interface FeatureQuota {
   quotaLimit: number;
   periodStart: string;
 }
+
+// ===== SEO Audit (Phase 3: SEO Auditor) =====
+
+export const AUDIT_STATUSES = ["queued", "running", "completed", "failed"] as const;
+export type AuditStatus = (typeof AUDIT_STATUSES)[number];
+
+export const ISSUE_STATUSES = ["open", "fixed", "dismissed"] as const;
+export type IssueStatus = (typeof ISSUE_STATUSES)[number];
+
+export const ISSUE_SEVERITIES = ["high", "medium", "low"] as const;
+export type IssueSeverity = (typeof ISSUE_SEVERITIES)[number];
+
+export const ISSUE_TYPES = [
+  "missing-title",
+  "meta-title-too-long",
+  "meta-title-too-short",
+  "missing-meta-description",
+  "meta-description-too-long",
+  "missing-h1",
+  "multiple-h1",
+  "missing-canonical",
+  "non-indexable",
+  "missing-jsonld",
+  "thin-content",
+  "images-without-alt",
+  "broken-links",
+  "non-https",
+] as const;
+export type IssueType = (typeof ISSUE_TYPES)[number];
+
+export const ISSUE_CATEGORIES = ["metadata", "content", "links", "schema", "indexability"] as const;
+export type IssueCategory = (typeof ISSUE_CATEGORIES)[number];
+
+export interface Audit {
+  id: string;
+  tenantId: string;
+  name: string | null;
+  status: AuditStatus;
+  crawlDepth: number;
+  excludePatterns: string[];
+  totalUrls: number;
+  progress: number;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+}
+
+export interface CrawlUrl {
+  id: string;
+  auditId: string;
+  url: string;
+  status: number | null;
+  title: string | null;
+  metaDescription: string | null;
+  metaTitleLength: number | null;
+  metaDescriptionLength: number | null;
+  hasH1: boolean | null;
+  hasCanonical: boolean | null;
+  isIndexable: boolean | null;
+  wordCount: number | null;
+  imagesWithoutAlt: number | null;
+  brokenLinks: number | null;
+  lighthouseScore: Record<string, unknown> | null;
+  crawledAt: string;
+}
+
+export interface RecommendedFix {
+  action: string;
+  label: string;
+  fields?: Record<string, unknown>;
+}
+
+export interface AuditIssue {
+  id: string;
+  tenantId: string;
+  auditId: string;
+  type: IssueType;
+  url: string | null;
+  severity: IssueSeverity;
+  impactScore: number;
+  status: IssueStatus;
+  recommendedFix: RecommendedFix | null;
+  fixedAt: string | null;
+  createdAt: string;
+}
+
+export interface SeoScore {
+  id: string;
+  tenantId: string;
+  auditId: string | null;
+  score: number;
+  categories: Record<IssueCategory, number>;
+  createdAt: string;
+}
+
+export interface IssueFix {
+  id: string;
+  tenantId: string;
+  issueId: string;
+  type: IssueType;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
+  result: string | null;
+  createdAt: string;
+}
