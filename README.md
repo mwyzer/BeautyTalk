@@ -149,6 +149,7 @@ Storefront and customer endpoints resolve the store via the `X-Tenant-Slug` head
 | `npm run test:unit` | Unit tests |
 | `npm run test:integration` | Postgres-backed integration tests |
 | `npm run db:migrate` / `db:seed` / `db:reset` | Database setup helpers |
+| `npm run db:bulk` | Regenerate 1000 users / orders / content drafts for testing |
 
 ## Repository Structure
 
@@ -191,5 +192,16 @@ Phase status **verified against the code** on 2026-09-10.
 | P6 — Launch & Hardening | Partial (billing schema) | `009_billing.sql` + seed plans; no Stripe subscriptions |
 
 **Notes:** dev stack is Postgres 16 + Redis 7 (no MinIO service in `docker-compose.yml` — object storage is a design target, not wired). Integration suite is 51 tests (auth 10, tenant isolation 6, commerce 14, content 12, SEO auditor 4, marketing analytics 5, run per-suite due to shared test DB).
+
+### Fraud Testing Data
+
+`npm run db:bulk` regenerates 1,000 customer users, 1,000 orders, and 1,000 content drafts on the `glow-co` tenant (deterministic seed, repeats wipe + rebuild). Bulk users log in as `bulk-N@customer.test` / `Password123!`. Customers are tagged by fraud scenario — 3% velocity, 3% refund-abuse, 3% address-mismatch, 2% new-account bursts — so order/velocity/chargeback fraud tests have labelled data.
+
+| Variable | Default |
+|---|---|
+| `BULK_USERS` | 1000 |
+| `BULK_ORDERS` | 1000 |
+| `BULK_CONTENT` | 1000 |
+| `BULK_TENANT_SLUG` | glow-co |
 
 See [docs/PROGRESS.md](docs/PROGRESS.md) for detailed per-phase deliverable tracking — each phase has its own file under [docs/phases/](docs/phases/).
