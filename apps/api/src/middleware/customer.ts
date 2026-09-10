@@ -10,7 +10,7 @@ export interface CustomerContext {
   tenantId: string;
 }
 
-export function authenticateCustomer(db: Db, config: Pick<AppConfig, "JWT_ACCESS_SECRET">) {
+export function authenticateCustomer(db: Db, config: Pick<AppConfig, "JWT_CUSTOMER_SECRET">) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       // Public store endpoints also accept header auth for logged-in carts.
@@ -20,7 +20,7 @@ export function authenticateCustomer(db: Db, config: Pick<AppConfig, "JWT_ACCESS
         return;
       }
       const token = header.slice("Bearer ".length);
-      const claims = verifyCustomerToken(config.JWT_ACCESS_SECRET, token);
+      const claims = verifyCustomerToken(config.JWT_CUSTOMER_SECRET, token);
       const customer = await findCustomerById(db, claims.tenantId, claims.customerId);
       if (!customer) {
         next(ApiError.unauthorized("Customer account not found"));

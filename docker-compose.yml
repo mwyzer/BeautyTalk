@@ -60,6 +60,7 @@ services:
       REDIS_URL: redis://redis:6379
       JWT_ACCESS_SECRET: prod_access_secret_change_me_32_bytes_long
       JWT_REFRESH_SECRET: prod_refresh_secret_change_me_32_bytes_long
+      JWT_CUSTOMER_SECRET: prod_customer_secret_change_me_32_bytes_long
       JWT_ACCESS_TTL: 15m
       JWT_REFRESH_TTL: 30d
       STOREFRONT_URL: http://web:4321

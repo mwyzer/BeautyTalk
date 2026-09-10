@@ -1,8 +1,10 @@
 import jwt, { type SignOptions } from "jsonwebtoken";
 import type { AuthContext, Role } from "@beautyai/shared";
 
+export const HS256: jwt.Algorithm = "HS256";
+
 export interface TokenClaims {
-  sub: string; // user id (merchant) or customer id
+  sub: string;
   tenant_id: string;
   role?: Role;
   type: "access" | "refresh" | "customer";
@@ -43,7 +45,7 @@ export function signRefreshToken(
 }
 
 export function verifyAccessToken(secret: string, token: string): AuthContext {
-  const payload = jwt.verify(token, secret) as TokenClaims;
+  const payload = jwt.verify(token, secret, { algorithms: [HS256] }) as TokenClaims;
   if (payload.type !== "access" || !payload.sub || !payload.tenant_id || !payload.role) {
     throw new Error("Invalid access token payload");
   }
@@ -57,7 +59,7 @@ export function signCustomerToken(secret: string, ttl: string, customerId: strin
 }
 
 export function verifyCustomerToken(secret: string, token: string): { customerId: string; tenantId: string } {
-  const payload = jwt.verify(token, secret) as TokenClaims;
+  const payload = jwt.verify(token, secret, { algorithms: [HS256] }) as TokenClaims;
   if (payload.type !== "customer" || !payload.sub || !payload.tenant_id) {
     throw new Error("Invalid customer token");
   }
@@ -65,7 +67,7 @@ export function verifyCustomerToken(secret: string, token: string): { customerId
 }
 
 export function verifyRefreshTokenPayload(secret: string, token: string): TokenClaims & { jti: string } {
-  const payload = jwt.verify(token, secret) as TokenClaims;
+  const payload = jwt.verify(token, secret, { algorithms: [HS256] }) as TokenClaims;
   if (payload.type !== "refresh" || !payload.sub || !payload.tenant_id || !payload.jti) {
     throw new Error("Invalid refresh token payload");
   }

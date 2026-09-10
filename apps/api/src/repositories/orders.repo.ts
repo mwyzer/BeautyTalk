@@ -178,6 +178,29 @@ export async function listOrders(
   return { data: rows, total: Number(count.rows[0]?.n ?? 0) };
 }
 
+export async function listOrdersByCustomer(
+  db: Db,
+  tenantId: string,
+  customerId: string,
+  opts: { page?: number; limit?: number } = {},
+): Promise<{ data: OrderRow[]; total: number }> {
+  const page = Math.max(1, opts.page ?? 1);
+  const limit = Math.min(100, Math.max(1, opts.limit ?? 20));
+  const offset = (page - 1) * limit;
+  const { rows } = await db.query<OrderRow>(
+    `SELECT * FROM orders
+     WHERE tenant_id = $1 AND customer_id = $2
+     ORDER BY placed_at DESC, created_at DESC
+     LIMIT ${limit} OFFSET ${offset}`,
+    [tenantId, customerId],
+  );
+  const count = await db.query<{ n: string }>(
+    "SELECT COUNT(*)::text n FROM orders WHERE tenant_id = $1 AND customer_id = $2",
+    [tenantId, customerId],
+  );
+  return { data: rows, total: Number(count.rows[0]?.n ?? 0) };
+}
+
 export async function findOrderById(db: Db, tenantId: string, id: string): Promise<OrderRow | null> {
   const { rows } = await db.query<OrderRow>(
     "SELECT * FROM orders WHERE tenant_id = $1 AND id = $2",

@@ -1,22 +1,26 @@
 import { Router } from "express";
 import { loginSchema, refreshSchema, registerSchema } from "@beautyai/shared";
 import { validateBody } from "../../middleware/validate.js";
+import { rateLimit } from "../../middleware/rate-limit.js";
 import type { AuthService } from "./service.js";
+
+const AUTH_RATE = rateLimit({ windowMs: 60_000, max: 10 });
+const REFRESH_RATE = rateLimit({ windowMs: 60_000, max: 30 });
 
 export function createAuthRouter(auth: AuthService): Router {
   const router = Router();
 
-  router.post("/register", validateBody(registerSchema), async (req, res) => {
+  router.post("/register", AUTH_RATE, validateBody(registerSchema), async (req, res) => {
     const result = await auth.register(req.body, req.ip);
     res.status(201).json(result);
   });
 
-  router.post("/login", validateBody(loginSchema), async (req, res) => {
+  router.post("/login", AUTH_RATE, validateBody(loginSchema), async (req, res) => {
     const result = await auth.login(req.body, req.ip);
     res.json(result);
   });
 
-  router.post("/refresh", validateBody(refreshSchema), async (req, res) => {
+  router.post("/refresh", REFRESH_RATE, validateBody(refreshSchema), async (req, res) => {
     const tokens = await auth.refresh(req.body.refreshToken, req.ip);
     res.json(tokens);
   });

@@ -18,7 +18,7 @@ import {
 } from "../../repositories/memberships.repo.js";
 import { createRefreshToken, findValidToken, revokeAllForUser, revokeToken } from "../../repositories/refresh-tokens.repo.js";
 import { createTenant, findTenantBySlug, findTenantById } from "../../repositories/tenants.repo.js";
-import { createUser, findById as findUserById, findByEmail, updateLastLogin } from "../../repositories/users.repo.js";
+import { createUser, findById as findUserById, findByEmail, updateLastLogin, recordFailedAttempt, isLocked } from "../../repositories/users.repo.js";
 import { writeAuditLog } from "../../repositories/audit-logs.repo.js";
 import { ApiError } from "../../lib/http.js";
 import {
@@ -141,8 +141,12 @@ export function createAuthService(db: DbPool, config: AppConfig): AuthService {
     async login(input, ip) {
       const user = await findByEmail(db, input.email);
       if (!user || !user.password_hash) throw ApiError.unauthorized("Invalid email or password");
+      if (await isLocked(db, user)) throw ApiError.rateLimited("This account is temporarily locked. Try again later.");
       const valid = await argon2Verify(user.password_hash, input.password);
-      if (!valid) throw ApiError.unauthorized("Invalid email or password");
+      if (!valid) {
+        await recordFailedAttempt(db, user.id);
+        throw ApiError.unauthorized("Invalid email or password");
+      }
       if (user.status !== "active") throw ApiError.forbidden("This account is disabled");
 
       const memberships = await findActiveMemberships(db, user.id);

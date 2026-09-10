@@ -48,7 +48,16 @@ export function createApp({ db, config, contentProvider, jobs, auditJobs, auditS
   app.set("trust proxy", 1);
 
   app.use(helmet());
-  app.use(cors({ origin: true, credentials: true }));
+
+  const corsOrigins = config.CORS_ALLOWED_ORIGINS
+    ? config.CORS_ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean)
+    : undefined;
+  app.use(
+    cors({
+      origin: corsOrigins && corsOrigins.length > 0 ? corsOrigins : true,
+      credentials: true,
+    }),
+  );
 
   app.use((req, res, next) => {
     const headerId = req.headers["x-request-id"];

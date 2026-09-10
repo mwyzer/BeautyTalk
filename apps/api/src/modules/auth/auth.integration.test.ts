@@ -56,6 +56,40 @@ describe("auth", () => {
     expect(res.body.errors).toHaveProperty("email");
   });
 
+  it("rejects weak passwords missing complexity requirements", async () => {
+    const res = await request(app).post("/api/v1/auth/register").send({
+      storeName: "Glow Co.",
+      email: "weak@glow.co",
+      password: "onlylowercase1",
+      fullName: "Weak Pass",
+    });
+    expect(res.status).toBe(422);
+    expect(res.body.errors).toHaveProperty("password");
+  });
+
+  it("locks the account after repeated failed logins", async () => {
+    await request(app).post("/api/v1/auth/register").send(demoUser).expect(201);
+
+    for (let i = 0; i < 5; i += 1) {
+      const attempt = await request(app)
+        .post("/api/v1/auth/login")
+        .send({ email: demoUser.email, password: "WrongPassword!" });
+      expect([401, 429]).toContain(attempt.status);
+    }
+
+    const locked = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email: demoUser.email, password: demoUser.password });
+    expect(locked.status).toBe(429);
+
+    const { rows } = await db.query<{ failed_attempts: number; locked_until: Date | null }>(
+      "SELECT failed_attempts, locked_until FROM users WHERE email = $1",
+      [demoUser.email],
+    );
+    expect(Number(rows[0]?.failed_attempts)).toBeGreaterThanOrEqual(5);
+    expect(rows[0]?.locked_until).not.toBeNull();
+  });
+
   it("logs in with valid credentials", async () => {
     await request(app).post("/api/v1/auth/register").send(demoUser).expect(201);
     const res = await request(app)

@@ -13,6 +13,7 @@ export function testConfig(overrides: Record<string, string> = {}): AppConfig {
     NODE_ENV: "test",
     JWT_ACCESS_SECRET: "test_access_secret_at_least_16_chars",
     JWT_REFRESH_SECRET: "test_refresh_secret_at_least_16_chars",
+    JWT_CUSTOMER_SECRET: "test_customer_secret_at_least_16_chars",
     STRIPE_WEBHOOK_SECRET: "whsec_test_webhook_secret",
     ...overrides,
   });

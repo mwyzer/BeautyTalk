@@ -4,7 +4,7 @@ import { hash as argon2Hash, verify as argon2Verify } from "@node-rs/argon2";
 import type { AppConfig } from "../../config/env.js";
 import { ApiError } from "../../lib/http.js";
 import { signCustomerToken } from "../../lib/token.js";
-import { createUser, findByEmail as findUserByEmail } from "../../repositories/users.repo.js";
+import { createUser, findByEmail as findUserByEmail, isLocked, recordFailedAttempt } from "../../repositories/users.repo.js";
 import {
   createCustomer,
   findCustomerByEmail,
@@ -24,7 +24,7 @@ export function createCustomerAuthService(db: DbPool, config: AppConfig): Custom
   const issueToken = async (tenantId: string, customerId: string): Promise<{ accessToken: string; expiresIn: number }> => {
     const customer = await findCustomerById(db, tenantId, customerId);
     if (!customer) throw ApiError.unauthorized("Customer account not found");
-    const accessToken = signCustomerToken(config.JWT_ACCESS_SECRET, config.JWT_ACCESS_TTL, customer.id, tenantId);
+    const accessToken = signCustomerToken(config.JWT_CUSTOMER_SECRET, config.JWT_ACCESS_TTL, customer.id, tenantId);
     return { accessToken, expiresIn: 900 };
   };
 
@@ -81,8 +81,12 @@ export function createCustomerAuthService(db: DbPool, config: AppConfig): Custom
     async login(tenantId, input, ip) {
       const user = await findUserByEmail(db, input.email);
       if (!user || !user.password_hash) throw ApiError.unauthorized("Invalid email or password");
+      if (await isLocked(db, user)) throw ApiError.rateLimited("This account is temporarily locked. Try again later.");
       const valid = await argon2Verify(user.password_hash, input.password);
-      if (!valid) throw ApiError.unauthorized("Invalid email or password");
+      if (!valid) {
+        await recordFailedAttempt(db, user.id);
+        throw ApiError.unauthorized("Invalid email or password");
+      }
 
       const customer = await findCustomerByUserId(db, tenantId, user.id);
       if (!customer) throw ApiError.unauthorized("Invalid email or password");

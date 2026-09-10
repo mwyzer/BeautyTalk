@@ -16,7 +16,7 @@ import {
   updateAddress,
   updateCustomer,
 } from "../../repositories/customers.repo.js";
-import { listOrders as listTenantOrders } from "../../repositories/orders.repo.js";
+import { listOrdersByCustomer } from "../../repositories/orders.repo.js";
 
 export function createCustomerAccountRouter(db: Db, config: AppConfig): Router {
   const meRouter = Router();
@@ -33,10 +33,9 @@ export function createCustomerAccountRouter(db: Db, config: AppConfig): Router {
     const customerId = req.cust!.customerId;
     const page = Number(req.query.page ?? 1);
     const limit = Number(req.query.limit ?? 20);
-    const { data, total: _total } = await listTenantOrders(db, tenantId, { page, limit });
-    const owned = data.filter((o) => o.customer_id === customerId);
+    const { data, total } = await listOrdersByCustomer(db, tenantId, customerId, { page, limit });
     res.json({
-      data: owned.map((o) => ({
+      data: data.map((o) => ({
         id: o.id,
         number: o.number,
         status: o.status,
@@ -44,7 +43,7 @@ export function createCustomerAccountRouter(db: Db, config: AppConfig): Router {
         currency: o.currency,
         placed_at: o.placed_at.toISOString(),
       })),
-      meta: { page, limit, total: owned.length },
+      meta: { page, limit, total },
     });
   });
 

@@ -33,6 +33,7 @@ jobs:
       DATABASE_URL_TEST: postgres://beautyai:beautyai_ci@localhost:5432/beautyai_test
       JWT_ACCESS_SECRET: ci_access_secret_at_least_16_chars
       JWT_REFRESH_SECRET: ci_refresh_secret_at_least_16_chars
+      JWT_CUSTOMER_SECRET: ci_customer_secret_at_least_16_chars
     steps:
       - uses: actions/checkout@v4
 

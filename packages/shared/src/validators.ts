@@ -12,7 +12,11 @@ export const registerSchema = z.object({
   password: z
     .string()
     .min(8, "password must be at least 8 characters")
-    .max(128, "password must be at most 128 characters"),
+    .max(128, "password must be at most 128 characters")
+    .regex(/[A-Z]/, "password must contain an uppercase letter")
+    .regex(/[a-z]/, "password must contain a lowercase letter")
+    .regex(/[0-9]/, "password must contain a number")
+    .regex(/[^A-Za-z0-9]/, "password must contain a symbol"),
   fullName: z.string().trim().min(1, "fullName is required").max(120),
 });
 
@@ -148,7 +152,14 @@ export const updateCartItemSchema = z.object({
 
 export const customerRegisterSchema = z.object({
   email: z.string().trim().toLowerCase().email("email must be a valid email address"),
-  password: z.string().min(8, "password must be at least 8 characters").max(128),
+  password: z
+    .string()
+    .min(8, "password must be at least 8 characters")
+    .max(128, "password must be at most 128 characters")
+    .regex(/[A-Z]/, "password must contain an uppercase letter")
+    .regex(/[a-z]/, "password must contain a lowercase letter")
+    .regex(/[0-9]/, "password must contain a number")
+    .regex(/[^A-Za-z0-9]/, "password must contain a symbol"),
   firstName: z.string().trim().max(120).optional().nullable(),
   lastName: z.string().trim().max(120).optional().nullable(),
   phone: z.string().max(40).optional().nullable(),
