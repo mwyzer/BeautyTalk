@@ -8,12 +8,13 @@ import { ContentView } from "./views/ContentView";
 import { SEOView } from "./views/SEOView";
 import { AnalyticsView } from "./views/AnalyticsView";
 import { RecommendationsView } from "./views/RecommendationsView";
+import { FraudView } from "./views/FraudView";
 
-type View = "products" | "orders" | "customers" | "content" | "seo" | "analytics" | "recommendations";
+type View = "products" | "orders" | "customers" | "content" | "seo" | "analytics" | "recommendations" | "fraud";
 
 function readView(): View {
   const h = window.location.hash.replace(/^#\/?/, "");
-  if (h === "orders" || h === "customers" || h === "content" || h === "seo" || h === "analytics" || h === "recommendations") return h;
+  if (h === "orders" || h === "customers" || h === "content" || h === "seo" || h === "analytics" || h === "recommendations" || h === "fraud") return h;
   return "products";
 }
 
@@ -55,6 +56,7 @@ export function App(): ReactElement {
       {view === "seo" && <SEOView />}
       {view === "analytics" && <AnalyticsView />}
       {view === "recommendations" && <RecommendationsView />}
+      {view === "fraud" && <FraudView />}
     </AdminLayout>
   );
 }

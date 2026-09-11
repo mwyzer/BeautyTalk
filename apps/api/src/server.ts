@@ -9,10 +9,12 @@ import { createContentJobClient } from "./jobs/contentQueue.js";
 import { createAuditJobClient } from "./jobs/crawlQueue.js";
 import { createAnalyticsJobClient } from "./jobs/analyticsQueue.js";
 import { createRecJobClient } from "./jobs/recQueue.js";
+import { createFraudJobClient } from "./jobs/fraudQueue.js";
 import { startContentWorker, type ContentWorkerHandle } from "./workers/contentWorker.js";
 import { startAuditWorker, type AuditWorkerHandle } from "./workers/crawlWorker.js";
 import { startAnalyticsWorker, type AnalyticsWorkerHandle } from "./workers/analyticsWorker.js";
 import { startRecWorker, type RecWorkerHandle } from "./workers/recWorker.js";
+import { startFraudWorker, type FraudWorkerHandle } from "./workers/fraudWorker.js";
 
 const config = createConfig();
 const db = createPool({ connectionString: config.DATABASE_URL });
@@ -28,8 +30,9 @@ const analyticsFetcher = createGoogleAnalyticsFetcher({
 });
 const analyticsJobs = createAnalyticsJobClient(config);
 const recJobs = createRecJobClient(config);
+const fraudJobs = createFraudJobClient(config);
 
-const app = createApp({ db, config, contentProvider: provider, jobs, auditJobs, analyticsFetcher, analyticsJobs, recJobs });
+const app = createApp({ db, config, contentProvider: provider, jobs, auditJobs, analyticsFetcher, analyticsJobs, recJobs, fraudJobs });
 
 let worker: ContentWorkerHandle | undefined;
 let auditWorker: AuditWorkerHandle | undefined;
@@ -68,6 +71,13 @@ if (config.REDIS_URL) {
   recWorker = startRecWorker({ db, connection: recConnection });
   console.log("Recommendation refresh worker started (async queue).");
 }
+let fraudWorker: FraudWorkerHandle | undefined;
+let fraudConnection: Redis | undefined;
+if (config.REDIS_URL) {
+  fraudConnection = new Redis(config.REDIS_URL, { maxRetriesPerRequest: null });
+  fraudWorker = startFraudWorker({ db, connection: fraudConnection });
+  console.log("Fraud detection worker started (async queue).");
+}
 
 const server = app.listen(config.PORT, () => {
   console.log(`BeautyAI API listening on http://localhost:${config.PORT} (${config.NODE_ENV})`);
@@ -96,10 +106,15 @@ async function shutdown(signal: string): Promise<void> {
       await recWorker.close();
       await recConnection?.quit();
     }
+    if (fraudWorker) {
+      await fraudWorker.close();
+      await fraudConnection?.quit();
+    }
     if (jobs) await jobs.close();
     if (auditJobs) await auditJobs.close();
     if (analyticsJobs) await analyticsJobs.close();
     if (recJobs) await recJobs.close();
+    if (fraudJobs) await fraudJobs.close();
     await db.end();
     process.exit(0);
   });

@@ -622,3 +622,101 @@ export interface RecRefreshResult {
   generatedAt: string;
   queued: boolean;
 }
+
+// ===== Fraud Detection (Phase 6: Launch & Hardening) =====
+
+export const FRAUD_RULES = ["velocity", "refund_abuse", "address_mismatch", "new_account_burst"] as const;
+export type FraudRule = (typeof FRAUD_RULES)[number];
+
+export const FRAUD_FLAG_STATUSES = ["open", "cleared", "blocked"] as const;
+export type FraudFlagStatus = (typeof FRAUD_FLAG_STATUSES)[number];
+
+export const FRAUD_RULE_LABELS: Record<FraudRule, string> = {
+  velocity: "Order velocity",
+  refund_abuse: "Refund abuse",
+  address_mismatch: "Address mismatch",
+  new_account_burst: "New-account burst",
+};
+
+export interface FraudRuleOptions {
+  enabled: boolean;
+  weight: number;
+}
+
+export interface FraudVelocityConfig extends FraudRuleOptions {
+  orders: number;
+  withinHours: number;
+}
+
+export interface FraudRefundAbuseConfig extends FraudRuleOptions {
+  refundRatio: number;
+  minOrders: number;
+}
+
+export interface FraudAddressMismatchConfig extends FraudRuleOptions {
+  enabled: boolean;
+  weight: number;
+}
+
+export interface FraudNewAccountBurstConfig extends FraudRuleOptions {
+  orders: number;
+  withinHours: number;
+  accountAgeDays: number;
+}
+
+export interface FraudConfig {
+  minRiskScore: number;
+  lookbackDays: number;
+  velocity: FraudVelocityConfig;
+  refundAbuse: FraudRefundAbuseConfig;
+  addressMismatch: FraudAddressMismatchConfig;
+  newAccountBurst: FraudNewAccountBurstConfig;
+}
+
+export interface FraudFlagDetails {
+  velocity?: { count: number; windowHours: number };
+  refundAbuse?: { refunded: number; total: number; ratio: number };
+  addressMismatch?: { distinctAddresses: number };
+  newAccountBurst?: { count: number; windowHours: number; accountAgeDays: number };
+}
+
+export interface FraudFlag {
+  id: string;
+  tenantId: string;
+  orderId: string;
+  customerId: string | null;
+  rules: FraudRule[];
+  riskScore: number;
+  status: FraudFlagStatus;
+  details: FraudFlagDetails;
+  notes: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+}
+
+export interface FraudFlagListItem extends FraudFlag {
+  orderNumber: number;
+  orderStatus: string;
+  orderEmail: string | null;
+  orderTotalAmount: number;
+  orderCurrency: string;
+  orderPlacedAt: string;
+  customerEmail: string | null;
+  customerName: string | null;
+}
+
+export interface FraudScanResult {
+  ok: boolean;
+  queued: boolean;
+  scannedOrders: number;
+  flagsCreated: number;
+  generatedAt: string;
+}
+
+export interface FraudOverview {
+  open: number;
+  cleared: number;
+  blocked: number;
+  total: number;
+}

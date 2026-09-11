@@ -338,3 +338,49 @@ export const recEventSchema = z
 
 export type RecStrategyConfigInput = z.infer<typeof recStrategyConfigSchema>;
 export type RecEventInput = z.infer<typeof recEventSchema>;
+
+// ===== Fraud Detection (Phase 6: Launch & Hardening) =====
+
+const fraudRuleBase = z.object({
+  enabled: z.boolean().default(true),
+  weight: z.number().int().min(0).max(100),
+});
+
+export const fraudConfigSchema = z.object({
+  minRiskScore: z.number().int().min(1).max(100).default(40),
+  lookbackDays: z.number().int().min(1).max(365).default(90),
+  velocity: z
+    .object({
+      ...fraudRuleBase.shape,
+      orders: z.number().int().min(2).max(100).default(3),
+      withinHours: z.number().int().min(1).max(168).default(3),
+    })
+    .partial()
+    .default({}),
+  refundAbuse: z
+    .object({
+      ...fraudRuleBase.shape,
+      refundRatio: z.number().min(0).max(1).default(0.5),
+      minOrders: z.number().int().min(1).max(100).default(2),
+    })
+    .partial()
+    .default({}),
+  addressMismatch: z.object({ ...fraudRuleBase.shape }).partial().default({}),
+  newAccountBurst: z
+    .object({
+      ...fraudRuleBase.shape,
+      orders: z.number().int().min(2).max(100).default(3),
+      withinHours: z.number().int().min(1).max(168).default(24),
+      accountAgeDays: z.number().int().min(1).max(365).default(7),
+    })
+    .partial()
+    .default({}),
+});
+
+export const fraudResolveSchema = z.object({
+  status: z.enum(["cleared", "blocked"]),
+  notes: z.string().max(500).optional().nullable(),
+});
+
+export type FraudConfigInput = z.infer<typeof fraudConfigSchema>;
+export type FraudResolveInput = z.infer<typeof fraudResolveSchema>;

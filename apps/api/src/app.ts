@@ -18,11 +18,13 @@ import { createContentService, createAdminContentRouter, createContentProvider }
 import { createAuditService, createAdminAuditRouter, type AuditService } from "./modules/audit/index.js";
 import { createAnalyticsService, createAdminAnalyticsRouter, type AnalyticsService } from "./modules/analytics/index.js";
 import { createRecommendationService, createPublicEventsRouter, createPublicProductRecsRouter, createPublicHomeRouter, createAdminRecommendationsRouter, type RecommendationService } from "./modules/recommendations/index.js";
+import { createFraudService, createAdminFraudRouter, type FraudService } from "./modules/fraud/index.js";
 import type { ContentProvider } from "./content/types.js";
 import type { ContentJobClient } from "./jobs/contentQueue.js";
 import type { AuditJobClient } from "./jobs/crawlQueue.js";
 import type { AnalyticsJobClient } from "./jobs/analyticsQueue.js";
 import type { RecJobClient } from "./jobs/recQueue.js";
+import type { FraudJobClient } from "./jobs/fraudQueue.js";
 import type { AnalyticsFetcher } from "./analytics/types.js";
 import { createGoogleAnalyticsFetcher } from "./analytics/provider.js";
 import { findActiveMemberships } from "./repositories/memberships.repo.js";
@@ -40,9 +42,11 @@ export interface AppDeps {
   analyticsService?: AnalyticsService | null;
   recJobs?: RecJobClient | null;
   recService?: RecommendationService | null;
+  fraudJobs?: FraudJobClient | null;
+  fraudService?: FraudService | null;
 }
 
-export function createApp({ db, config, contentProvider, jobs, auditJobs, auditService, analyticsFetcher, analyticsJobs, analyticsService, recJobs, recService }: AppDeps): express.Express {
+export function createApp({ db, config, contentProvider, jobs, auditJobs, auditService, analyticsFetcher, analyticsJobs, analyticsService, recJobs, recService, fraudJobs, fraudService }: AppDeps): express.Express {
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
@@ -94,6 +98,7 @@ export function createApp({ db, config, contentProvider, jobs, auditJobs, auditS
       : analyticsFetcher;
   const analytics = analyticsService ?? createAnalyticsService({ db, fetcher: analyticsProvider, config });
   const recs = recService ?? createRecommendationService({ db });
+  const fraud = fraudService ?? createFraudService({ db });
 
   const api = express.Router();
   api.use("/auth", createAuthRouter(auth));
@@ -142,6 +147,7 @@ export function createApp({ db, config, contentProvider, jobs, auditJobs, auditS
   api.use("/admin/seo", merchantAuthenticate, requireRoles("owner", "editor"), createAdminAuditRouter({ db, service: audit, jobs: auditJobs }));
   api.use("/admin/analytics", merchantAuthenticate, requireRoles("owner", "editor"), createAdminAnalyticsRouter({ service: analytics, jobs: analyticsJobs }));
   api.use("/admin/recommendations", merchantAuthenticate, requireRoles("owner", "editor"), createAdminRecommendationsRouter({ service: recs, jobs: recJobs }));
+  api.use("/admin/fraud", merchantAuthenticate, requireRoles("owner", "editor"), createAdminFraudRouter({ db, service: fraud, jobs: fraudJobs }));
 
   // Customer self-service (customer JWT). Mounted after merchant /me so GET /me stays merchant-only.
   api.use("/me", createCustomerAccountRouter(db, config));
